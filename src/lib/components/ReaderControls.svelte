@@ -64,8 +64,8 @@
       <input
         type="range"
         min="560"
-        max="1200"
-        step="40"
+        max="3840"
+        step="80"
         value={$settings.maxWidth}
         oninput={(e) => settings.update((s) => ({ ...s, maxWidth: parseInt(e.currentTarget.value) }))}
         class="rc-range"
