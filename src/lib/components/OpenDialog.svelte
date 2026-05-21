@@ -106,7 +106,10 @@
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === "Escape") visible = false;
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      visible = false;
+    }
   }
 
   function formatTime(ts: number): string {

@@ -117,6 +117,7 @@
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Escape") {
+      e.stopPropagation();
       visible = false;
     }
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {

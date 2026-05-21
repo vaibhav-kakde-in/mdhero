@@ -5,6 +5,7 @@ export interface ReaderSettings {
   lineHeight: number;
   fontFamily: "sans" | "serif" | "mono";
   maxWidth: number;
+  closeOnEscape: boolean;
 }
 
 const STORAGE_KEY = "mdhero-settings";
@@ -15,6 +16,7 @@ function loadSettings(): ReaderSettings {
     lineHeight: 1.7,
     fontFamily: "sans",
     maxWidth: 720,
+    closeOnEscape: true,
   };
 
   if (typeof localStorage === "undefined") return defaults;

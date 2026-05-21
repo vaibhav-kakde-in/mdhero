@@ -1,6 +1,14 @@
 use std::fs;
 use std::path::Path;
 
+/// Explicitly quit the app — used by the "Close on Escape" setting when
+/// closing the last tab. On macOS this is needed because the standard
+/// "close window" behavior leaves the app running in the dock.
+#[tauri::command]
+pub fn quit_app(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
 #[tauri::command]
 pub fn read_markdown_file(path: String) -> Result<String, String> {
     let p = Path::new(&path);

@@ -8,6 +8,7 @@
   import { startFileWatcher } from "$lib/tauri/watcher";
   import { themeMode, cycleTheme } from "$lib/stores/theme";
   import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { invoke } from "@tauri-apps/api/core";
   import { tocVisible, tocEntries } from "$lib/stores/toc";
   import Toolbar from "$lib/components/Toolbar.svelte";
   import MarkdownRenderer from "$lib/components/MarkdownRenderer.svelte";
@@ -18,6 +19,7 @@
   import SearchOverlay from "$lib/components/SearchOverlay.svelte";
   import PasteModal from "$lib/components/PasteModal.svelte";
   import OpenDialog from "$lib/components/OpenDialog.svelte";
+  import SettingsDialog from "$lib/components/SettingsDialog.svelte";
   import FrontmatterBar from "$lib/components/FrontmatterBar.svelte";
   import StatusBar from "$lib/components/StatusBar.svelte";
   import ProgressBar from "$lib/components/ProgressBar.svelte";
@@ -36,6 +38,7 @@
   let pasteVisible = $state(false);
   let pasteDefaultMode = $state<"paste" | "url">("paste");
   let openVisible = $state(false);
+  let settingsVisible = $state(false);
   let zenMode = $state(false);
   let rawMode = $state(false);
 
@@ -156,11 +159,12 @@
     switchMode(rawMode ? "viewer" : "raw");
   }
 
-  function handleCloseTab(id: string) {
+  function handleCloseTab(id: string): boolean {
     const t = $tabs.find((x) => x.id === id);
-    if (!t) return;
-    if (t.dirty && !confirm(`Discard unsaved changes to ${t.fileName}?`)) return;
+    if (!t) return false;
+    if (t.dirty && !confirm(`Discard unsaved changes to ${t.fileName}?`)) return false;
     tabStore.closeTab(id);
+    return true;
   }
 
   onMount(async () => {
@@ -329,6 +333,13 @@
       return;
     }
 
+    // Cmd+, open settings (macOS Preferences convention)
+    if ((e.metaKey || e.ctrlKey) && e.key === ",") {
+      e.preventDefault();
+      settingsVisible = !settingsVisible;
+      return;
+    }
+
     // Cmd+W close tab (with dirty confirm)
     if ((e.metaKey || e.ctrlKey) && e.key === "w") {
       e.preventDefault();
@@ -343,9 +354,35 @@
       return;
     }
 
-    // Escape — close panels
+    // Escape — close panels, then optionally close-tab-on-ESC
     if (e.key === "Escape") {
       if (zenMode) { zenMode = false; return; }
+
+      // Modals/overlays consume ESC first. Inner handlers stopPropagation when focus
+      // is inside them; this guard covers the focus-outside case (modal visible but
+      // user clicked elsewhere) so we don't nuke the tab while a modal is still up.
+      if (searchVisible || pasteVisible || openVisible || settingsVisible || lightboxVisible) return;
+
+      // Close-on-ESC: opt-in setting. Ignore in edit mode and when an input is focused
+      // (so users typing in search/paste/etc. don't accidentally trigger it).
+      if ($settings.closeOnEscape && !activeTab?.isEditing && !isInputFocused()) {
+        const tabsBeforeClose = $tabs.length;
+
+        if (activeTab && activeTab.id !== HOME_TAB_ID) {
+          // Close the current file tab (handleCloseTab manages the dirty prompt)
+          const closed = handleCloseTab(activeTab.id);
+          // If that was the last file tab, quit the app entirely.
+          // On macOS this is required — closing the window leaves the app in the dock.
+          if (closed && tabsBeforeClose === 1) {
+            invoke("quit_app").catch(() => {});
+          }
+        } else if (tabsBeforeClose === 0) {
+          // Active is home tab and no file tabs are open → quit
+          invoke("quit_app").catch(() => {});
+        }
+        // Else: home tab is active with file tabs in background — do nothing
+        // (don't nuke the user's session just because they happened to be on home)
+      }
       return;
     }
 
@@ -487,6 +524,7 @@
       canEdit={canEditActive}
       onEditToggle={handleEditToggle}
       onSave={() => activeTab && handleSave(activeTab)}
+      onOpenSettings={() => (settingsVisible = true)}
     />
     <TabBar onCloseTab={handleCloseTab} />
   {/if}
@@ -497,6 +535,7 @@
   <SearchOverlay bind:visible={searchVisible} />
   <PasteModal bind:visible={pasteVisible} defaultMode={pasteDefaultMode} />
   <OpenDialog bind:visible={openVisible} />
+  <SettingsDialog bind:visible={settingsVisible} />
 
   {#if !rendererReady}
     <div class="state-center">

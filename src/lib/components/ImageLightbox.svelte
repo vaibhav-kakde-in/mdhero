@@ -21,7 +21,11 @@
   }
 
   function handleKeydown(e: KeyboardEvent) {
-    if (e.key === "Escape") close();
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      close();
+      return;
+    }
     if (e.key === "ArrowRight") next();
     if (e.key === "ArrowLeft") prev();
   }

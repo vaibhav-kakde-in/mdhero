@@ -40,6 +40,7 @@ pub fn run() {
             commands::write_markdown_file,
             commands::list_claude_plans,
             commands::list_folder_md_files,
+            commands::quit_app,
             watcher::start_watching,
             watcher::stop_watching,
             get_opened_files,
