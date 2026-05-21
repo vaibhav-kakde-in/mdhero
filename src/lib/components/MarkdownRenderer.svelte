@@ -334,6 +334,13 @@
     color: #67E8F9;
   }
 
+  /* Strip the literal backticks @tailwindcss/typography adds around inline
+     code via ::before/::after — every other markdown renderer omits them. */
+  article :global(:not(pre) > code)::before,
+  article :global(:not(pre) > code)::after {
+    content: none;
+  }
+
   /* Tables */
   article :global(table) {
     border-collapse: collapse;
