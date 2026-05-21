@@ -4,6 +4,13 @@ use std::path::Path;
 /// Explicitly quit the app — used by the "Close on Escape" setting when
 /// closing the last tab. On macOS this is needed because the standard
 /// "close window" behavior leaves the app running in the dock.
+///
+/// SAFETY: this bypasses any pending dirty-tab confirmation. Callers MUST
+/// close all dirty tabs via the frontend tab store (which surfaces a
+/// confirm() prompt) before invoking this. Currently only invoked from the
+/// close-on-ESC flow in `+page.svelte`, which guarantees this — either the
+/// last tab is closed via `handleCloseTab` first (dirty prompt included), or
+/// the invocation only happens from the home tab when no file tabs exist.
 #[tauri::command]
 pub fn quit_app(app: tauri::AppHandle) {
     app.exit(0);

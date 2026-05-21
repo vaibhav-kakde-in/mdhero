@@ -47,6 +47,15 @@
   let lightboxImages = $state<string[]>([]);
   let lightboxIndex = $state(0);
 
+  // Aggregated flag for any modal/overlay being visible. The close-on-ESC gate
+  // and any future "is the user mid-interaction?" check should read this so a
+  // new modal can't silently miss the gate by being added to state but not the
+  // ESC handler. Each modal's own ESC handler also calls stopPropagation(); the
+  // two together cover both focus-inside and focus-outside-modal cases.
+  let anyModalVisible = $derived(
+    searchVisible || pasteVisible || openVisible || settingsVisible || lightboxVisible
+  );
+
   const { tabs, activeTabId } = tabStore;
 
   let activeTab = $derived<Tab | null>($tabs.find((t) => t.id === $activeTabId) ?? null);
@@ -361,7 +370,8 @@
       // Modals/overlays consume ESC first. Inner handlers stopPropagation when focus
       // is inside them; this guard covers the focus-outside case (modal visible but
       // user clicked elsewhere) so we don't nuke the tab while a modal is still up.
-      if (searchVisible || pasteVisible || openVisible || settingsVisible || lightboxVisible) return;
+      // Add new modals to `anyModalVisible` (see top of script) to keep this safe.
+      if (anyModalVisible) return;
 
       // Close-on-ESC: opt-in setting. Ignore in edit mode and when an input is focused
       // (so users typing in search/paste/etc. don't accidentally trigger it).
