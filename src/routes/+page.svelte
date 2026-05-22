@@ -31,6 +31,7 @@
   import { checkForUpdates, updateAvailable, updateDismissed, checkInFlight } from "$lib/stores/updater";
   import { get } from "svelte/store";
   import { getCurrentSourceLine, scrollToSourceLine, type ViewMode } from "$lib/utils/scroll-sync";
+  import { saveProgress, getProgress } from "$lib/stores/readingProgress";
 
   let rendererReady = $state(false);
   let lastWatchedPath: string | null = null;
@@ -55,6 +56,84 @@
   let anyModalVisible = $derived(
     searchVisible || pasteVisible || openVisible || settingsVisible || lightboxVisible
   );
+
+  // Reading progress: debounced scroll save + restore guard
+  let isRestoring = false;
+  let restoreTimer: ReturnType<typeof setTimeout> | undefined;
+  let scrollSaveTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function handleScrollForProgress() {
+    if (isRestoring) return;
+    const tab = tabStore.getActiveTab();
+    if (!tab || tab.isEditing) return;
+    if (tab.filePath.startsWith("paste://")) return;
+
+    clearTimeout(scrollSaveTimer);
+    scrollSaveTimer = setTimeout(() => {
+      // Tiny-file edge case: skip save if document fits in viewport
+      if (document.documentElement.scrollHeight <= window.innerHeight) return;
+      const line = getCurrentSourceLine("viewer");
+      saveProgress(tab.filePath, line);
+    }, 500);
+  }
+
+  function saveProgressNow() {
+    clearTimeout(scrollSaveTimer);
+    const tab = tabStore.getActiveTab();
+    if (!tab || tab.isEditing) return;
+    if (tab.filePath.startsWith("paste://")) return;
+    // Tiny-file edge case: skip save if document fits in viewport
+    if (document.documentElement.scrollHeight <= window.innerHeight) return;
+    const line = getCurrentSourceLine("viewer");
+    saveProgress(tab.filePath, line);
+  }
+
+  function handleVisibilityChange() {
+    if (document.hidden) saveProgressNow();
+  }
+
+  function restoreProgress(filePath: string) {
+    const savedLine = getProgress(filePath);
+    if (!savedLine || savedLine <= 1) return;
+
+    isRestoring = true;
+    clearTimeout(restoreTimer);
+
+    tick().then(() => {
+      requestAnimationFrame(() => {
+        const article = document.querySelector("article.prose");
+        if (!article) { isRestoring = false; return; }
+
+        const elements = Array.from(article.querySelectorAll<HTMLElement>("[data-source-line]"));
+        if (elements.length === 0) { isRestoring = false; return; }
+
+        // Find the saved line if it still exists, else fall back to the last
+        // element (handles file-shrunk case where saved line no longer exists)
+        let target: HTMLElement | null = null;
+        for (const el of elements) {
+          const elLine = parseInt(el.getAttribute("data-source-line") || "0", 10);
+          if (elLine >= savedLine) { target = el; break; }
+        }
+        if (!target) target = elements[elements.length - 1];
+
+        // Tiny-file edge case: don't restore if document fits in viewport
+        const docHeight = document.documentElement.scrollHeight;
+        if (docHeight <= window.innerHeight) { isRestoring = false; return; }
+
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+
+        // Clear isRestoring on scrollend (preferred) with 1s timeout fallback
+        // for WebViews that don't support the scrollend event
+        const clearRestoring = () => {
+          clearTimeout(restoreTimer);
+          window.removeEventListener("scrollend", clearRestoring);
+          isRestoring = false;
+        };
+        window.addEventListener("scrollend", clearRestoring, { once: true });
+        restoreTimer = setTimeout(clearRestoring, 1000);
+      });
+    });
+  }
 
   const { tabs, activeTabId } = tabStore;
 
@@ -172,6 +251,11 @@
     const t = $tabs.find((x) => x.id === id);
     if (!t) return false;
     if (t.dirty && !confirm(`Discard unsaved changes to ${t.fileName}?`)) return false;
+    // Flush reading progress before closing — catches the case where user
+    // scrolls and closes within the 500ms debounce window
+    if (t.id === $activeTabId) {
+      saveProgressNow();
+    }
     tabStore.closeTab(id);
     return true;
   }
@@ -212,8 +296,11 @@
       }
     };
 
-    // Listen for keyboard shortcuts
+    // Listen for keyboard shortcuts and scroll for reading progress
     window.addEventListener("keydown", handleKeydown);
+    window.addEventListener("scroll", handleScrollForProgress, { passive: true });
+    window.addEventListener("beforeunload", saveProgressNow);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     // Check for files opened via "Open With" / double-click (buffered in Rust state)
     try {
@@ -240,6 +327,9 @@
 
     return () => {
       window.removeEventListener("keydown", handleKeydown);
+      window.removeEventListener("scroll", handleScrollForProgress);
+      window.removeEventListener("beforeunload", saveProgressNow);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   });
 
@@ -466,6 +556,23 @@
 
     // Skip if same tab
     if (id === prevTabId) return;
+
+    // Save reading progress for the tab we're leaving.
+    // At this point in the $effect, $activeTabId has changed but the DOM still
+    // shows the previous tab's content (docStore.set happens below), so
+    // getCurrentSourceLine reads the correct article elements. We flush the
+    // debounce to ensure nothing is lost on rapid tab switches.
+    if (prevTabId && prevTabId !== HOME_TAB_ID) {
+      const prevTab = allTabs.find((t) => t.id === prevTabId);
+      if (prevTab && !prevTab.isEditing && !prevTab.filePath.startsWith("paste://")) {
+        clearTimeout(scrollSaveTimer);
+        if (document.documentElement.scrollHeight > window.innerHeight) {
+          const line = getCurrentSourceLine("viewer");
+          saveProgress(prevTab.filePath, line);
+        }
+      }
+    }
+
     prevTabId = id;
 
     if (!id || id === HOME_TAB_ID) {
@@ -506,6 +613,11 @@
     tick().then(() => {
       requestAnimationFrame(() => {
         window.scrollTo(0, savedScroll);
+        // Restore reading progress (smooth-scroll to saved source line)
+        // Only if the tab is at scroll 0 (freshly opened or re-opened)
+        if (savedScroll === 0) {
+          restoreProgress(tab.filePath);
+        }
       });
     });
   });
