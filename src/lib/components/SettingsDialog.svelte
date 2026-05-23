@@ -72,8 +72,8 @@
   }
 
   .dialog {
-    width: 480px;
-    max-height: 70vh;
+    width: 640px;
+    max-height: 75vh;
     background: white;
     border: 1px solid #e5e5ea;
     border-radius: 12px;
