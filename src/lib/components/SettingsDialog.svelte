@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { X } from "@lucide/svelte";
   import { settings } from "$lib/stores/settings";
   import AILookupSettings from "./AILookupSettings.svelte";
 
@@ -23,9 +24,7 @@
       <div class="dialog-header">
         <h2 class="dialog-title">Settings</h2>
         <button onclick={() => (visible = false)} class="dialog-close" aria-label="Close">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-            <line x1="3" y1="3" x2="11" y2="11"/><line x1="11" y1="3" x2="3" y2="11"/>
-          </svg>
+          <X size={16} />
         </button>
       </div>
 
@@ -164,10 +163,11 @@
   }
 
   .section-hint {
-    font-size: 12px;
+    font-size: 11.5px;
     color: #8e8e93;
-    margin: -4px 0 10px;
-    line-height: 1.45;
+    margin: -6px 0 12px;
+    line-height: 1.4;
+    max-width: 52ch;
   }
 
   .setting-row {
