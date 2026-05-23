@@ -1,7 +1,10 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
+  import { get } from "svelte/store";
+  import { invoke } from "@tauri-apps/api/core";
   import { settings, fontFamilyMap } from "$lib/stores/settings";
   import { tocEntries, activeHeadingId, extractToc, tocVisible, isObserverPaused } from "$lib/stores/toc";
+  import { aiLookup, setPendingSelection } from "$lib/stores/aiLookup";
   import mermaid from "mermaid";
 
   let {
@@ -94,8 +97,32 @@
     headings.forEach((h) => observer!.observe(h));
   }
 
+  // Right-click on the rendered article opens the AI Lookup native context
+  // menu. We suppress the default webview menu (Cut/Copy/Paste — they're
+  // rebuilt as the first items of our menu) and pass a slim provider payload
+  // to Rust (no urlTemplate, no prompt template body — those stay
+  // frontend-side; Rust only needs id/name to build the menu).
+  function handleContextMenu(e: MouseEvent) {
+    e.preventDefault();
+    const selection = window.getSelection()?.toString() ?? "";
+    setPendingSelection(selection);
+
+    const providers = get(aiLookup).providers.map((p) => ({
+      id: p.id,
+      name: p.name,
+      prompts: p.prompts.map((pr) => ({ id: pr.id, name: pr.name })),
+    }));
+
+    invoke("show_ai_context_menu", {
+      providers,
+      hasSelection: selection.trim().length > 0,
+    }).catch((err) => console.error("show_ai_context_menu failed:", err));
+  }
+
   onMount(() => {
+    articleEl?.addEventListener("contextmenu", handleContextMenu);
     return () => {
+      articleEl?.removeEventListener("contextmenu", handleContextMenu);
       observer?.disconnect();
     };
   });

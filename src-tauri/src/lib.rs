@@ -41,6 +41,7 @@ pub fn run() {
             commands::list_claude_plans,
             commands::list_folder_md_files,
             commands::quit_app,
+            commands::show_ai_context_menu,
             watcher::start_watching,
             watcher::stop_watching,
             get_opened_files,
@@ -52,12 +53,24 @@ pub fn run() {
 
             app.on_menu_event(move |app_handle, event| {
                 if let Some(window) = app_handle.get_webview_window("main") {
-                    match event.id().as_ref() {
+                    let id = event.id().as_ref();
+                    match id {
                         "open" => { let _ = window.eval("window.__mdhero_open_file?.()"); }
                         "paste_md" => { let _ = window.eval("window.__mdhero_paste?.()"); }
                         "theme" => { let _ = window.eval("window.__mdhero_toggle_theme?.()"); }
                         "find" => { let _ = window.eval("window.__mdhero_find?.()"); }
                         "check_updates" => { let _ = window.eval("window.__mdhero_check_updates?.()"); }
+                        // AI lookup right-click menu items — forward the
+                        // structured ID to the frontend router. JSON-stringify
+                        // the ID so embedded colons (and any future special
+                        // chars) survive the eval boundary cleanly.
+                        s if s.starts_with("aimenu:") => {
+                            let js = format!(
+                                "window.__mdhero_ai_lookup?.({})",
+                                serde_json::json!(s)
+                            );
+                            let _ = window.eval(&js);
+                        }
                         _ => {}
                     }
                 }

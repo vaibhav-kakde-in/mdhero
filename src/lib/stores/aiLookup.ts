@@ -259,3 +259,19 @@ export function assembleUrlByIds(
 export const aiLookup = {
   subscribe: store.subscribe,
 };
+
+// Ephemeral selection bridge between the contextmenu capture (in
+// MarkdownRenderer) and the menu-event router (in +page.svelte). Not in the
+// store because it's transient UI state, not persistent data. Cleared after
+// each consumption so a stale selection can't leak into a later open.
+let pendingSelection = "";
+
+export function setPendingSelection(s: string) {
+  pendingSelection = s;
+}
+
+export function consumePendingSelection(): string {
+  const out = pendingSelection;
+  pendingSelection = "";
+  return out;
+}

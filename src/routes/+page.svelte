@@ -20,6 +20,8 @@
   import PasteModal from "$lib/components/PasteModal.svelte";
   import OpenDialog from "$lib/components/OpenDialog.svelte";
   import SettingsDialog from "$lib/components/SettingsDialog.svelte";
+  import CustomPromptModal from "$lib/components/CustomPromptModal.svelte";
+  import { assembleUrlByIds, consumePendingSelection } from "$lib/stores/aiLookup";
   import FrontmatterBar from "$lib/components/FrontmatterBar.svelte";
   import StatusBar from "$lib/components/StatusBar.svelte";
   import ProgressBar from "$lib/components/ProgressBar.svelte";
@@ -40,6 +42,8 @@
   let pasteDefaultMode = $state<"paste" | "url">("paste");
   let openVisible = $state(false);
   let settingsVisible = $state(false);
+  let customPromptVisible = $state(false);
+  let customPromptSelection = $state("");
   let zenMode = $state(false);
   let rawMode = $state(false);
 
@@ -54,7 +58,7 @@
   // ESC handler. Each modal's own ESC handler also calls stopPropagation(); the
   // two together cover both focus-inside and focus-outside-modal cases.
   let anyModalVisible = $derived(
-    searchVisible || pasteVisible || openVisible || settingsVisible || lightboxVisible
+    searchVisible || pasteVisible || openVisible || settingsVisible || customPromptVisible || lightboxVisible
   );
 
   // Reading progress: debounced scroll save + restore guard
@@ -294,6 +298,40 @@
       if (!get(updateAvailable)) {
         alert("MDHero is up to date.");
       }
+    };
+    // Router for AI Lookup right-click menu items. lib.rs::setup forwards any
+    // menu event ID starting with "aimenu:" through this hook. The current
+    // selection was stashed in the aiLookup runtime helper at contextmenu
+    // capture time — we consume it here so a stale selection can't leak into
+    // a future menu open.
+    (window as any).__mdhero_ai_lookup = async (menuId: string) => {
+      const selection = consumePendingSelection();
+      if (menuId === "aimenu:google") {
+        if (!selection.trim()) return;
+        const url = `https://www.google.com/search?q=${encodeURIComponent(selection)}`;
+        const { openUrl } = await import("@tauri-apps/plugin-opener");
+        await openUrl(url);
+        return;
+      }
+      if (menuId === "aimenu:custom") {
+        customPromptSelection = selection;
+        customPromptVisible = true;
+        return;
+      }
+      if (menuId.startsWith("aimenu:template:")) {
+        // aimenu:template:{providerId}:{promptId}
+        const rest = menuId.slice("aimenu:template:".length);
+        const colon = rest.indexOf(":");
+        if (colon < 0) return;
+        const providerId = rest.slice(0, colon);
+        const promptId = rest.slice(colon + 1);
+        const url = assembleUrlByIds(providerId, promptId, selection);
+        if (!url) return;
+        const { openUrl } = await import("@tauri-apps/plugin-opener");
+        await openUrl(url);
+        return;
+      }
+      // aimenu:noop:* fires only from disabled items in theory — defensive ignore.
     };
 
     // Listen for keyboard shortcuts and scroll for reading progress
@@ -658,6 +696,7 @@
   <PasteModal bind:visible={pasteVisible} defaultMode={pasteDefaultMode} />
   <OpenDialog bind:visible={openVisible} />
   <SettingsDialog bind:visible={settingsVisible} />
+  <CustomPromptModal bind:visible={customPromptVisible} selection={customPromptSelection} />
 
   {#if !rendererReady}
     <div class="state-center">
