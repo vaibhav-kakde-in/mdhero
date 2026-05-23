@@ -1,5 +1,6 @@
 <script lang="ts">
   import { settings } from "$lib/stores/settings";
+  import AILookupSettings from "./AILookupSettings.svelte";
 
   let { visible = $bindable(false) }: { visible: boolean } = $props();
 
@@ -44,6 +45,12 @@
               class="setting-switch"
             />
           </label>
+        </section>
+
+        <section class="settings-section">
+          <h3 class="section-title">AI Lookup</h3>
+          <p class="section-hint">Right-click selected text in the viewer to send it to an AI tool. Manage providers and saved prompts below.</p>
+          <AILookupSettings />
         </section>
       </div>
     </div>
@@ -154,6 +161,13 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin: 0 0 10px;
+  }
+
+  .section-hint {
+    font-size: 12px;
+    color: #8e8e93;
+    margin: -4px 0 10px;
+    line-height: 1.45;
   }
 
   .setting-row {
