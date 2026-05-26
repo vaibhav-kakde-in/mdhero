@@ -60,6 +60,7 @@ pub fn run() {
                         "theme" => { let _ = window.eval("window.__mdhero_toggle_theme?.()"); }
                         "find" => { let _ = window.eval("window.__mdhero_find?.()"); }
                         "check_updates" => { let _ = window.eval("window.__mdhero_check_updates?.()"); }
+                        "about" => { let _ = window.eval("window.__mdhero_about?.()"); }
                         // AI lookup right-click menu items — forward the
                         // structured ID to the frontend router. JSON-stringify
                         // the ID so embedded colons (and any future special

@@ -10,7 +10,7 @@ pub fn create_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, tauri::Error> {
         "MDHero",
         true,
         &[
-            &PredefinedMenuItem::about(app, Some("About MDHero"), None)?,
+            &MenuItem::with_id(app, "about", "About MDHero", true, None::<&str>)?,
             &MenuItem::with_id(app, "check_updates", "Check for Updates…", true, None::<&str>)?,
             &PredefinedMenuItem::separator(app)?,
             &PredefinedMenuItem::hide(app, None)?,

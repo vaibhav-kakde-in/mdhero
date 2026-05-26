@@ -20,6 +20,7 @@
   import PasteModal from "$lib/components/PasteModal.svelte";
   import OpenDialog from "$lib/components/OpenDialog.svelte";
   import SettingsDialog from "$lib/components/SettingsDialog.svelte";
+  import AboutDialog from "$lib/components/AboutDialog.svelte";
   import CustomPromptModal from "$lib/components/CustomPromptModal.svelte";
   import { assembleUrlByIds, consumePendingSelection } from "$lib/stores/aiLookup";
   import FrontmatterBar from "$lib/components/FrontmatterBar.svelte";
@@ -42,6 +43,7 @@
   let pasteDefaultMode = $state<"paste" | "url">("paste");
   let openVisible = $state(false);
   let settingsVisible = $state(false);
+  let aboutVisible = $state(false);
   let customPromptVisible = $state(false);
   let customPromptSelection = $state("");
   let zenMode = $state(false);
@@ -58,7 +60,7 @@
   // ESC handler. Each modal's own ESC handler also calls stopPropagation(); the
   // two together cover both focus-inside and focus-outside-modal cases.
   let anyModalVisible = $derived(
-    searchVisible || pasteVisible || openVisible || settingsVisible || customPromptVisible || lightboxVisible
+    searchVisible || pasteVisible || openVisible || settingsVisible || aboutVisible || customPromptVisible || lightboxVisible
   );
 
   // Reading progress: debounced scroll save + restore guard
@@ -287,6 +289,9 @@
     };
     (window as any).__mdhero_zen = () => {
       zenMode = !zenMode;
+    };
+    (window as any).__mdhero_about = () => {
+      aboutVisible = true;
     };
     (window as any).__mdhero_check_updates = async () => {
       if (get(checkInFlight)) return;
@@ -696,6 +701,7 @@
   <PasteModal bind:visible={pasteVisible} defaultMode={pasteDefaultMode} />
   <OpenDialog bind:visible={openVisible} />
   <SettingsDialog bind:visible={settingsVisible} />
+  <AboutDialog bind:visible={aboutVisible} />
   <CustomPromptModal bind:visible={customPromptVisible} selection={customPromptSelection} />
 
   {#if !rendererReady}
