@@ -12,6 +12,7 @@ vite.config.ts.timestamp-*
 # Rust
 src-tauri/target/
 src-tauri/gen/
+*.stackdump
 FEATURES.md
 
 # Local working notes (not for public repo)
