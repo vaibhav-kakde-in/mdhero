@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { X } from "@lucide/svelte";
   import { getVersion } from "@tauri-apps/api/app";
+  import appIcon from "$lib/assets/mdhero-icon.png";
 
   let { visible = $bindable(false) }: { visible: boolean } = $props();
   let appVersion = $state("");
@@ -39,13 +40,7 @@
 
       <div class="dialog-body">
         <div class="about-content">
-          <div class="app-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
-              <path d="M7 10h2l1.5 2L12 10h2"/>
-              <line x1="7" y1="14" x2="17" y2="14"/>
-            </svg>
-          </div>
+          <img src={appIcon} class="app-icon" alt="MDHero" width="48" height="48" />
           <h3 class="app-name">MDHero</h3>
           <p class="app-version">Version {appVersion}</p>
           <p class="app-description">A beautiful, fast Markdown viewer for your desktop.</p>
@@ -154,8 +149,10 @@
   }
 
   .app-icon {
-    color: #0891B2;
+    width: 48px;
+    height: 48px;
     margin-bottom: 4px;
+    border-radius: 10px;
   }
 
   .app-name {
