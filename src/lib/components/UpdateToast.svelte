@@ -1,5 +1,6 @@
 <script lang="ts">
   import { updateAvailable, updateDismissed, dismissUpdate } from "$lib/stores/updater";
+  import { installUpdate, updateInstalling, updateProgress, updateError } from "$lib/stores/autoUpdate";
   import { tabStore, HOME_TAB_ID } from "$lib/stores/tabs";
 
   const { activeTabId } = tabStore;
@@ -25,12 +26,25 @@
         <path d="M3 12v1h10v-1" />
       </svg>
       <span class="update-text">
-        MDHero <strong>v{$updateAvailable.version}</strong> is available
+        {#if $updateInstalling}
+          {#if $updateProgress >= 0}Downloading… {$updateProgress}%{:else}Installing…{/if}
+        {:else if $updateError}
+          Update failed
+        {:else}
+          MDHero <strong>v{$updateAvailable.version}</strong> is available
+        {/if}
       </span>
     </div>
     <div class="update-actions">
-      <button class="update-btn download" onclick={openRelease}>Download</button>
-      <button class="update-btn dismiss" onclick={dismissUpdate}>Later</button>
+      {#if $updateInstalling}
+        <!-- buttons hidden while installing; progress shows in the text -->
+      {:else if $updateError}
+        <button class="update-btn download" onclick={openRelease}>Download manually</button>
+        <button class="update-btn dismiss" onclick={dismissUpdate}>Later</button>
+      {:else}
+        <button class="update-btn download" onclick={installUpdate}>Update now</button>
+        <button class="update-btn dismiss" onclick={dismissUpdate}>Later</button>
+      {/if}
     </div>
   </div>
 {/if}

@@ -103,7 +103,20 @@ jobs:
           # non-PR events. See the comment on that step for why empty strings
           # don't work as a "skip notarization" signal.
           APPLE_SIGNING_IDENTITY: ${{ matrix.platform == 'macos-latest' && (github.event_name == 'pull_request' && '-' || secrets.APPLE_SIGNING_IDENTITY) || '' }}
+          # Updater signing key — present only on non-PR builds (fork PRs can't
+          # access secrets). createUpdaterArtifacts is enabled via the release
+          # config overlay below, also non-PR only, so the two always line up:
+          # a build either creates signed updater artifacts (key + overlay) or
+          # creates none (PR). It never tries to create unsigned ones, which
+          # Tauri would reject.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ github.event_name != 'pull_request' && secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ github.event_name != 'pull_request' && secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
         with:
+          # On non-PR builds, merge the overlay that turns on
+          # bundle.createUpdaterArtifacts (signed .tar.gz/.sig + latest.json).
+          # Kept out of the base config so PR builds don't try to sign updater
+          # artifacts without a key.
+          args: ${{ github.event_name != 'pull_request' && '--config src-tauri/tauri.release.conf.json' || '' }}
           tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
           releaseName: ${{ startsWith(github.ref, 'refs/tags/') && format('MDHero {0}', github.ref_name) || '' }}
           releaseBody: |

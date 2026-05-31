@@ -30,6 +30,8 @@ fn get_opened_files(state: tauri::State<'_, OpenedFiles>) -> Vec<String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_cli::init())
@@ -55,21 +57,31 @@ pub fn run() {
                 if let Some(window) = app_handle.get_webview_window("main") {
                     let id = event.id().as_ref();
                     match id {
-                        "open" => { let _ = window.eval("window.__mdhero_open_file?.()"); }
-                        "paste_md" => { let _ = window.eval("window.__mdhero_paste?.()"); }
-                        "theme" => { let _ = window.eval("window.__mdhero_toggle_theme?.()"); }
-                        "find" => { let _ = window.eval("window.__mdhero_find?.()"); }
-                        "check_updates" => { let _ = window.eval("window.__mdhero_check_updates?.()"); }
-                        "about" => { let _ = window.eval("window.__mdhero_about?.()"); }
+                        "open" => {
+                            let _ = window.eval("window.__mdhero_open_file?.()");
+                        }
+                        "paste_md" => {
+                            let _ = window.eval("window.__mdhero_paste?.()");
+                        }
+                        "theme" => {
+                            let _ = window.eval("window.__mdhero_toggle_theme?.()");
+                        }
+                        "find" => {
+                            let _ = window.eval("window.__mdhero_find?.()");
+                        }
+                        "check_updates" => {
+                            let _ = window.eval("window.__mdhero_check_updates?.()");
+                        }
+                        "about" => {
+                            let _ = window.eval("window.__mdhero_about?.()");
+                        }
                         // AI lookup right-click menu items — forward the
                         // structured ID to the frontend router. JSON-stringify
                         // the ID so embedded colons (and any future special
                         // chars) survive the eval boundary cleanly.
                         s if s.starts_with("aimenu:") => {
-                            let js = format!(
-                                "window.__mdhero_ai_lookup?.({})",
-                                serde_json::json!(s)
-                            );
+                            let js =
+                                format!("window.__mdhero_ai_lookup?.({})", serde_json::json!(s));
                             let _ = window.eval(&js);
                         }
                         _ => {}
@@ -89,7 +101,9 @@ pub fn run() {
 
                 for url in urls {
                     let path = if url.scheme() == "file" {
-                        url.to_file_path().ok().map(|p| p.to_string_lossy().to_string())
+                        url.to_file_path()
+                            .ok()
+                            .map(|p| p.to_string_lossy().to_string())
                     } else {
                         Some(url.to_string())
                     };

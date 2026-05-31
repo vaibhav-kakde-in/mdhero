@@ -1,5 +1,6 @@
 <script lang="ts">
   import { updateAvailable, updateDismissed, dismissUpdate } from "$lib/stores/updater";
+  import { installUpdate, updateInstalling, updateProgress, updateError } from "$lib/stores/autoUpdate";
 
   async function openDownload() {
     const target = $updateAvailable?.download || $updateAvailable?.url;
@@ -32,17 +33,33 @@
       </svg>
     </div>
     <div class="banner-text">
-      <span class="banner-title">Update available — <strong>v{$updateAvailable.version}</strong></span>
-      {#if $updateAvailable.notes}
-        <span class="banner-notes" title={$updateAvailable.notes}>{$updateAvailable.notes}</span>
+      {#if $updateInstalling}
+        <span class="banner-title">
+          {#if $updateProgress >= 0}Downloading update… {$updateProgress}%{:else}Installing update…{/if}
+        </span>
+      {:else if $updateError}
+        <span class="banner-title">Update failed</span>
+        <span class="banner-notes" title={$updateError}>{$updateError}</span>
+      {:else}
+        <span class="banner-title">Update available — <strong>v{$updateAvailable.version}</strong></span>
+        {#if $updateAvailable.notes}
+          <span class="banner-notes" title={$updateAvailable.notes}>{$updateAvailable.notes}</span>
+        {/if}
       {/if}
     </div>
     <div class="banner-actions">
-      {#if $updateAvailable.url}
-        <button class="banner-btn link" onclick={openReleaseNotes}>Release notes</button>
+      {#if $updateInstalling}
+        <!-- progress shown in the title while installing -->
+      {:else if $updateError}
+        <button class="banner-btn primary" onclick={openDownload}>Download manually</button>
+        <button class="banner-btn dismiss" onclick={dismissUpdate}>Later</button>
+      {:else}
+        {#if $updateAvailable.url}
+          <button class="banner-btn link" onclick={openReleaseNotes}>Release notes</button>
+        {/if}
+        <button class="banner-btn primary" onclick={installUpdate}>Update now</button>
+        <button class="banner-btn dismiss" onclick={dismissUpdate} title="Dismiss until next release">Later</button>
       {/if}
-      <button class="banner-btn primary" onclick={openDownload}>Download</button>
-      <button class="banner-btn dismiss" onclick={dismissUpdate} title="Dismiss until next release">Later</button>
     </div>
   </div>
 {/if}

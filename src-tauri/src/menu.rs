@@ -11,7 +11,13 @@ pub fn create_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, tauri::Error> {
         true,
         &[
             &MenuItem::with_id(app, "about", "About MDHero", true, None::<&str>)?,
-            &MenuItem::with_id(app, "check_updates", "Check for Updates…", true, None::<&str>)?,
+            &MenuItem::with_id(
+                app,
+                "check_updates",
+                "Check for Updates…",
+                true,
+                None::<&str>,
+            )?,
             &PredefinedMenuItem::separator(app)?,
             &PredefinedMenuItem::hide(app, None)?,
             &PredefinedMenuItem::hide_others(app, None)?,
@@ -27,7 +33,13 @@ pub fn create_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, tauri::Error> {
         true,
         &[
             &MenuItem::with_id(app, "open", "Open...", true, Some("CmdOrCtrl+O"))?,
-            &MenuItem::with_id(app, "paste_md", "Paste Markdown...", true, Some("CmdOrCtrl+Shift+V"))?,
+            &MenuItem::with_id(
+                app,
+                "paste_md",
+                "Paste Markdown...",
+                true,
+                Some("CmdOrCtrl+Shift+V"),
+            )?,
             &PredefinedMenuItem::separator(app)?,
             &MenuItem::with_id(app, "close", "Close Tab", true, Some("CmdOrCtrl+W"))?,
         ],
@@ -52,7 +64,13 @@ pub fn create_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, tauri::Error> {
         "View",
         true,
         &[
-            &MenuItem::with_id(app, "theme", "Toggle Theme", true, Some("CmdOrCtrl+Shift+T"))?,
+            &MenuItem::with_id(
+                app,
+                "theme",
+                "Toggle Theme",
+                true,
+                Some("CmdOrCtrl+Shift+T"),
+            )?,
             &PredefinedMenuItem::separator(app)?,
             &PredefinedMenuItem::fullscreen(app, None)?,
         ],

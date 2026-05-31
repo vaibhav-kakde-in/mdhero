@@ -59,17 +59,20 @@ pub fn list_claude_plans() -> Result<Vec<PlanFile>, String> {
 
     let mut plans: Vec<PlanFile> = Vec::new();
 
-    let entries = fs::read_dir(&plans_dir).map_err(|e| format!("Failed to read plans directory: {}", e))?;
+    let entries =
+        fs::read_dir(&plans_dir).map_err(|e| format!("Failed to read plans directory: {}", e))?;
 
     for entry in entries.flatten() {
         let path = entry.path();
         if path.is_file() {
             if let Some(ext) = path.extension() {
                 if ext == "md" || ext == "markdown" {
-                    let name = path.file_name()
+                    let name = path
+                        .file_name()
                         .map(|n| n.to_string_lossy().to_string())
                         .unwrap_or_default();
-                    let modified = entry.metadata()
+                    let modified = entry
+                        .metadata()
                         .ok()
                         .and_then(|m| m.modified().ok())
                         .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
@@ -118,7 +121,13 @@ pub fn list_folder_md_files(folder: String, max_depth: Option<u32>) -> Result<Ve
     Ok(files)
 }
 
-fn collect_md_files(root: &Path, dir: &Path, max_depth: u32, current_depth: u32, files: &mut Vec<MdFile>) {
+fn collect_md_files(
+    root: &Path,
+    dir: &Path,
+    max_depth: u32,
+    current_depth: u32,
+    files: &mut Vec<MdFile>,
+) {
     if current_depth > max_depth {
         return;
     }
@@ -142,7 +151,16 @@ fn collect_md_files(root: &Path, dir: &Path, max_depth: u32, current_depth: u32,
         if path.is_dir() {
             if let Some(name) = path.file_name() {
                 let n = name.to_string_lossy();
-                if matches!(n.as_ref(), "node_modules" | "target" | "dist" | "build" | ".git" | "__pycache__" | "vendor") {
+                if matches!(
+                    n.as_ref(),
+                    "node_modules"
+                        | "target"
+                        | "dist"
+                        | "build"
+                        | ".git"
+                        | "__pycache__"
+                        | "vendor"
+                ) {
                     continue;
                 }
             }
@@ -153,16 +171,19 @@ fn collect_md_files(root: &Path, dir: &Path, max_depth: u32, current_depth: u32,
         if path.is_file() {
             if let Some(ext) = path.extension() {
                 if ext == "md" || ext == "markdown" || ext == "mdown" || ext == "mkd" {
-                    let name = path.file_name()
+                    let name = path
+                        .file_name()
                         .map(|n| n.to_string_lossy().to_string())
                         .unwrap_or_default();
 
                     // Relative path from the root folder
-                    let rel_path = path.strip_prefix(root)
+                    let rel_path = path
+                        .strip_prefix(root)
                         .map(|p| p.to_string_lossy().to_string())
                         .unwrap_or_default();
 
-                    let modified = entry.metadata()
+                    let modified = entry
+                        .metadata()
                         .ok()
                         .and_then(|m| m.modified().ok())
                         .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
@@ -260,8 +281,8 @@ pub fn show_ai_context_menu(
     // current selection (done frontend-side).
     for provider in &providers {
         let submenu_label = format!("Ask {}", provider.name);
-        let submenu = Submenu::new(&app, &submenu_label, has_selection)
-            .map_err(|e| e.to_string())?;
+        let submenu =
+            Submenu::new(&app, &submenu_label, has_selection).map_err(|e| e.to_string())?;
 
         if provider.prompts.is_empty() {
             // Empty submenu would be silently invisible on some platforms;
@@ -279,14 +300,8 @@ pub fn show_ai_context_menu(
         } else {
             for prompt in &provider.prompts {
                 let id = format!("aimenu:template:{}:{}", provider.id, prompt.id);
-                let item = MenuItem::with_id(
-                    &app,
-                    id,
-                    &prompt.name,
-                    has_selection,
-                    None::<&str>,
-                )
-                .map_err(|e| e.to_string())?;
+                let item = MenuItem::with_id(&app, id, &prompt.name, has_selection, None::<&str>)
+                    .map_err(|e| e.to_string())?;
                 submenu.append(&item).map_err(|e| e.to_string())?;
             }
         }

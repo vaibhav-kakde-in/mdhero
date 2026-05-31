@@ -38,25 +38,32 @@ pub fn start_watching(app: AppHandle, path: String) -> Result<(), String> {
 
     let app_handle = app.clone();
 
-    let mut debouncer = new_debouncer(Duration::from_millis(500), move |res: Result<Vec<notify_debouncer_mini::DebouncedEvent>, notify::Error>| {
-        match res {
-            Ok(events) => {
-                for event in events {
-                    if event.kind == DebouncedEventKind::Any {
-                        // Only emit if the changed file matches our target
-                        if event.path == target_file {
-                            let _ = app_handle.emit("file-changed", serde_json::json!({
-                                "path": event.path.to_string_lossy()
-                            }));
+    let mut debouncer = new_debouncer(
+        Duration::from_millis(500),
+        move |res: Result<Vec<notify_debouncer_mini::DebouncedEvent>, notify::Error>| {
+            match res {
+                Ok(events) => {
+                    for event in events {
+                        if event.kind == DebouncedEventKind::Any {
+                            // Only emit if the changed file matches our target
+                            if event.path == target_file {
+                                let _ = app_handle.emit(
+                                    "file-changed",
+                                    serde_json::json!({
+                                        "path": event.path.to_string_lossy()
+                                    }),
+                                );
+                            }
                         }
                     }
                 }
+                Err(e) => {
+                    eprintln!("Watch error: {:?}", e);
+                }
             }
-            Err(e) => {
-                eprintln!("Watch error: {:?}", e);
-            }
-        }
-    }).map_err(|e| format!("Failed to create watcher: {}", e))?;
+        },
+    )
+    .map_err(|e| format!("Failed to create watcher: {}", e))?;
 
     debouncer
         .watcher()
