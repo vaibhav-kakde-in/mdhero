@@ -412,7 +412,29 @@
     }
   }
 
+  function scrollPage(direction: "up" | "down") {
+    const distance = window.innerHeight * (direction === "down" ? 1 : -1);
+    window.scrollBy({ top: distance, behavior: "smooth" });
+  }
+
   function handleKeydown(e: KeyboardEvent) {
+    // Vim-style Ctrl+F / Ctrl+B full-page navigation in reader/raw modes.
+    // Keep this before the generic Cmd/Ctrl shortcut block so Ctrl+F does not
+    // fall through to the browser/WebView find behavior.
+    if (
+      e.ctrlKey
+      && !e.metaKey
+      && !e.altKey
+      && !e.shiftKey
+      && (e.key === "f" || e.key === "b")
+    ) {
+      if (!isInputFocused() && !anyModalVisible && !activeTab?.isEditing && $docStore.renderedHtml) {
+        e.preventDefault();
+        scrollPage(e.key === "f" ? "down" : "up");
+      }
+      return;
+    }
+
     // Cmd+1-9 tab switching
     if ((e.metaKey || e.ctrlKey) && e.key >= "1" && e.key <= "9") {
       e.preventDefault();
