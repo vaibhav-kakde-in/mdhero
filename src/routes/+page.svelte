@@ -3,7 +3,7 @@
   import { document as docStore } from "$lib/stores/document";
   import { tabStore, HOME_TAB_ID, type Tab } from "$lib/stores/tabs";
   import { initRenderer, renderFull } from "$lib/renderer/pipeline";
-  import { openFile, openFileDialog, saveFile } from "$lib/tauri/files";
+  import { getBaseDir, openFile, openFileDialog, saveFile } from "$lib/tauri/files";
   import { settings } from "$lib/stores/settings";
   import { startFileWatcher } from "$lib/tauri/watcher";
   import { themeMode, cycleTheme } from "$lib/stores/theme";
@@ -171,9 +171,7 @@
       // shows the latest unsaved changes immediately. The dirty indicator
       // continues to mark that the changes aren't on disk yet.
       if (activeTab.isEditing && activeTab.dirty) {
-        const baseDir = activeTab.filePath.includes("/")
-          ? activeTab.filePath.substring(0, activeTab.filePath.lastIndexOf("/"))
-          : undefined;
+        const baseDir = getBaseDir(activeTab.filePath);
         const result = renderFull(activeTab.editContent, baseDir);
         // Update the rendered HTML in the docStore so the viewer reflects
         // the unsaved edits. We do NOT call tabStore.updateTabContent or
@@ -207,9 +205,7 @@
     if (!tab.dirty) return;
     try {
       await saveFile(tab.filePath, tab.editContent);
-      const baseDir = tab.filePath.includes("/")
-        ? tab.filePath.substring(0, tab.filePath.lastIndexOf("/"))
-        : undefined;
+      const baseDir = getBaseDir(tab.filePath);
       const result = renderFull(tab.editContent, baseDir);
       tabStore.markSaved(tab.id);
       tabStore.updateTabContent(

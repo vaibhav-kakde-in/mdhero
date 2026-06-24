@@ -15,10 +15,12 @@ export async function saveFile(path: string, content: string): Promise<void> {
 }
 
 export async function openFile(path: string): Promise<void> {
-  const fileName = path.split("/").pop() ?? path;
+  const absolutePath = await resolvePath(path);
+  const fileName = absolutePath.split("/").pop() ?? absolutePath;
+  const baseDir = getBaseDir(absolutePath);
 
   document.set({
-    filePath: path,
+    filePath: absolutePath,
     fileName,
     content: "",
     renderedHtml: "",
@@ -29,14 +31,13 @@ export async function openFile(path: string): Promise<void> {
   });
 
   try {
-    const content = await readMarkdownFile(path);
-    const baseDir = path.includes("/") ? path.substring(0, path.lastIndexOf("/")) : undefined;
+    const content = await readMarkdownFile(absolutePath);
     const result = renderFull(content, baseDir);
 
-    tabStore.addTab(path, fileName, content, result.html, result.frontmatter, result.wordCount);
+    tabStore.addTab(absolutePath, fileName, content, result.html, result.frontmatter, result.wordCount);
 
     document.set({
-      filePath: path,
+      filePath: absolutePath,
       fileName,
       content,
       renderedHtml: result.html,
@@ -46,12 +47,12 @@ export async function openFile(path: string): Promise<void> {
       error: null,
     });
 
-    addRecentFile(path, fileName);
+    addRecentFile(absolutePath, fileName);
     getCurrentWindow().setTitle(`${fileName} — MDHero`).catch(() => {});
-    invoke("start_watching", { path }).catch(() => {});
+    invoke("start_watching", { path: absolutePath }).catch(() => {});
   } catch (err) {
     document.set({
-      filePath: path,
+      filePath: absolutePath,
       fileName,
       content: "",
       renderedHtml: "",
@@ -87,15 +88,16 @@ export async function openFileDialog(): Promise<void> {
 
 export async function reloadCurrentFile(path: string): Promise<void> {
   try {
-    const content = await readMarkdownFile(path);
-    const baseDir = path.substring(0, path.lastIndexOf("/"));
+    const absolutePath = await resolvePath(path);
+    const content = await readMarkdownFile(absolutePath);
+    const baseDir = getBaseDir(absolutePath);
     const result = renderFull(content, baseDir);
-    const fileName = path.split("/").pop() ?? path;
+    const fileName = absolutePath.split("/").pop() ?? absolutePath;
 
-    tabStore.updateTabContent(path, content, result.html, result.frontmatter, result.wordCount);
+    tabStore.updateTabContent(absolutePath, content, result.html, result.frontmatter, result.wordCount);
 
     document.set({
-      filePath: path,
+      filePath: absolutePath,
       fileName,
       content,
       renderedHtml: result.html,
@@ -107,4 +109,14 @@ export async function reloadCurrentFile(path: string): Promise<void> {
   } catch (err) {
     console.error("Failed to reload file:", err);
   }
+}
+
+export function getBaseDir(path: string): string {
+  const normalized = path.replace(/\\/g, "/");
+  const idx = normalized.lastIndexOf("/");
+  return idx >= 0 ? normalized.slice(0, idx) : ".";
+}
+
+export async function resolvePath(path: string): Promise<string> {
+  return invoke<string>("resolve_path", { path });
 }

@@ -49,6 +49,25 @@ pub fn write_markdown_file(path: String, content: String) -> Result<(), String> 
 }
 
 #[tauri::command]
+pub fn resolve_path(path: String) -> Result<String, String> {
+    let p = Path::new(&path);
+    let absolute = if p.is_absolute() {
+        p.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .map_err(|e| format!("Failed to determine current directory: {}", e))?
+            .join(p)
+    };
+
+    absolute
+        .canonicalize()
+        .unwrap_or(absolute)
+        .to_str()
+        .map(|s| s.to_string())
+        .ok_or_else(|| format!("Path is not valid UTF-8: {}", path))
+}
+
+#[tauri::command]
 pub fn list_claude_plans() -> Result<Vec<PlanFile>, String> {
     let home = std::env::var("HOME").map_err(|_| "Cannot determine home directory".to_string())?;
     let plans_dir = Path::new(&home).join(".claude").join("plans");

@@ -40,6 +40,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::read_markdown_file,
             commands::write_markdown_file,
+            commands::resolve_path,
             commands::list_claude_plans,
             commands::list_folder_md_files,
             commands::quit_app,

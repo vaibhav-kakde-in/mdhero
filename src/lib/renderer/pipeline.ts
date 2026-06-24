@@ -215,16 +215,81 @@ export function renderFull(markdown: string, baseDir?: string): RenderResult {
 
 function resolveRelativeImages(html: string, baseDir: string): string {
   return html.replace(
-    /(<img\s[^>]*?\bsrc=")(?!https?:\/\/|data:|blob:)([^"]+)(")/gi,
+    /(<img\s[^>]*?\bsrc=")(?!https?:\/\/|data:|blob:|asset:|file:)([^"]+)(")/gi,
     (_match, before, src, after) => {
-      const absPath = `${baseDir}/${src}`.replace(/\/\.\//g, "/");
+      const imagePath = resolveImagePath(src, baseDir);
       try {
-        return `${before}${convertFileSrc(absPath)}${after}`;
+        return `${before}${convertFileSrc(imagePath)}${after}`;
       } catch {
         return `${before}${src}${after}`;
       }
     }
+  ).replace(
+    /(<(?:img|source)\s[^>]*?\bsrcset=")([^"]+)(")/gi,
+    (_match, before, srcset, after) => `${before}${resolveSrcset(srcset, baseDir)}${after}`
   );
+}
+
+function resolveSrcset(srcset: string, baseDir: string): string {
+  return srcset
+    .split(",")
+    .map((candidate) => {
+      const trimmed = candidate.trim();
+      if (!trimmed) return trimmed;
+
+      const [src, ...descriptor] = trimmed.split(/\s+/);
+      if (isExternalSrc(src)) return trimmed;
+
+      try {
+        const converted = convertFileSrc(resolveImagePath(src, baseDir));
+        return [converted, ...descriptor].join(" ");
+      } catch {
+        return trimmed;
+      }
+    })
+    .join(", ");
+}
+
+function isExternalSrc(src: string): boolean {
+  return /^(?:https?:\/\/|data:|blob:|asset:|file:)/i.test(src);
+}
+
+function resolveImagePath(src: string, baseDir: string): string {
+  const decodedSrc = decodeImageSrc(src);
+  if (isAbsolutePath(decodedSrc)) return decodedSrc;
+  return normalizePath(`${baseDir}/${decodedSrc}`);
+}
+
+function decodeImageSrc(src: string): string {
+  try {
+    return decodeURI(src);
+  } catch {
+    return src;
+  }
+}
+
+function isAbsolutePath(path: string): boolean {
+  return path.startsWith("/") || /^[a-zA-Z]:[\\/]/.test(path) || path.startsWith("\\\\");
+}
+
+function normalizePath(path: string): string {
+  const isWindowsPath = /^[a-zA-Z]:[\\/]/.test(path) || path.startsWith("\\\\");
+  const separator = isWindowsPath ? "\\" : "/";
+  const normalized = path.replace(/[\\/]+/g, separator);
+  const prefix = normalized.startsWith(separator) ? separator : "";
+  const parts = normalized.split(separator);
+  const stack: string[] = [];
+
+  for (const part of parts) {
+    if (!part || part === ".") continue;
+    if (part === ".." && stack.length > 0 && stack[stack.length - 1] !== "..") {
+      stack.pop();
+    } else if (part !== ".." || !prefix) {
+      stack.push(part);
+    }
+  }
+
+  return `${prefix}${stack.join(separator)}`;
 }
 
 export function isInitialized(): boolean {
