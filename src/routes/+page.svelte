@@ -3,7 +3,7 @@
   import { document as docStore } from "$lib/stores/document";
   import { tabStore, HOME_TAB_ID, type Tab } from "$lib/stores/tabs";
   import { initRenderer, renderFull } from "$lib/renderer/pipeline";
-  import { getBaseDir, openFile, openFileDialog, saveFile } from "$lib/tauri/files";
+  import { allowAssets, getBaseDir, openFile, openFileDialog, saveFile } from "$lib/tauri/files";
   import { settings } from "$lib/stores/settings";
   import { startFileWatcher } from "$lib/tauri/watcher";
   import { themeMode, cycleTheme } from "$lib/stores/theme";
@@ -173,6 +173,10 @@
       if (activeTab.isEditing && activeTab.dirty) {
         const baseDir = getBaseDir(activeTab.filePath);
         const result = renderFull(activeTab.editContent, baseDir);
+        // Fire-and-forget: referenced images were almost always allowed at open;
+        // a brand-new external image typed mid-edit self-heals on the next
+        // render/reload. Not worth making this sync path async (#31).
+        allowAssets(result.assetPaths);
         // Update the rendered HTML in the docStore so the viewer reflects
         // the unsaved edits. We do NOT call tabStore.updateTabContent or
         // markSaved — the source on disk is unchanged, dirty stays true.
@@ -207,6 +211,7 @@
       await saveFile(tab.filePath, tab.editContent);
       const baseDir = getBaseDir(tab.filePath);
       const result = renderFull(tab.editContent, baseDir);
+      await allowAssets(result.assetPaths);
       tabStore.markSaved(tab.id);
       tabStore.updateTabContent(
         tab.filePath,

@@ -67,6 +67,25 @@ pub fn resolve_path(path: String) -> Result<String, String> {
         .ok_or_else(|| format!("Path is not valid UTF-8: {}", path))
 }
 
+/// Allow the webview's asset protocol to serve specific image files.
+///
+/// The static `assetProtocol.scope` in tauri.conf.json only covers `$HOME`, so
+/// documents opened from elsewhere (external drives, /tmp, repos outside home)
+/// can't load their local images (issue #31). The frontend resolves each
+/// referenced image to an absolute path during rendering and passes them here
+/// so we whitelist exactly those files at runtime — tighter than widening the
+/// static scope. Re-allowing an already-allowed path is a no-op.
+#[tauri::command]
+pub fn allow_assets(app: AppHandle, paths: Vec<String>) -> Result<(), String> {
+    let scope = app.asset_protocol_scope();
+    for p in &paths {
+        scope
+            .allow_file(p)
+            .map_err(|e| format!("Failed to allow asset {}: {}", p, e))?;
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub fn list_claude_plans() -> Result<Vec<PlanFile>, String> {
     let home = std::env::var("HOME").map_err(|_| "Cannot determine home directory".to_string())?;

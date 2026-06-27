@@ -64,6 +64,14 @@ export interface RenderResult {
   html: string;
   frontmatter: Record<string, unknown> | null;
   wordCount: number;
+  /**
+   * Absolute on-disk paths of every local image the document references, after
+   * resolution against `baseDir`. The caller hands these to the `allow_assets`
+   * command so the webview's asset protocol will actually serve them — files
+   * outside the static `$HOME/**` scope (external drives, /tmp, repos elsewhere)
+   * are otherwise refused (issue #31).
+   */
+  assetPaths: string[];
 }
 
 let md: MarkdownIt | null = null;
@@ -206,31 +214,34 @@ export function renderFull(markdown: string, baseDir?: string): RenderResult {
     ],
   });
 
+  const assetPaths: string[] = [];
   if (baseDir) {
-    html = resolveRelativeImages(html, baseDir);
+    html = resolveRelativeImages(html, baseDir, assetPaths);
   }
 
-  return { html, frontmatter, wordCount };
+  return { html, frontmatter, wordCount, assetPaths };
 }
 
-function resolveRelativeImages(html: string, baseDir: string): string {
+function resolveRelativeImages(html: string, baseDir: string, collected: string[]): string {
   return html.replace(
     /(<img\s[^>]*?\bsrc=")(?!https?:\/\/|data:|blob:|asset:|file:)([^"]+)(")/gi,
     (_match, before, src, after) => {
       const imagePath = resolveImagePath(src, baseDir);
       try {
-        return `${before}${convertFileSrc(imagePath)}${after}`;
+        const url = `${before}${convertFileSrc(imagePath)}${after}`;
+        collected.push(imagePath);
+        return url;
       } catch {
         return `${before}${src}${after}`;
       }
     }
   ).replace(
     /(<(?:img|source)\s[^>]*?\bsrcset=")([^"]+)(")/gi,
-    (_match, before, srcset, after) => `${before}${resolveSrcset(srcset, baseDir)}${after}`
+    (_match, before, srcset, after) => `${before}${resolveSrcset(srcset, baseDir, collected)}${after}`
   );
 }
 
-function resolveSrcset(srcset: string, baseDir: string): string {
+function resolveSrcset(srcset: string, baseDir: string, collected: string[]): string {
   return srcset
     .split(",")
     .map((candidate) => {
@@ -241,7 +252,9 @@ function resolveSrcset(srcset: string, baseDir: string): string {
       if (isExternalSrc(src)) return trimmed;
 
       try {
-        const converted = convertFileSrc(resolveImagePath(src, baseDir));
+        const imagePath = resolveImagePath(src, baseDir);
+        const converted = convertFileSrc(imagePath);
+        collected.push(imagePath);
         return [converted, ...descriptor].join(" ");
       } catch {
         return trimmed;
