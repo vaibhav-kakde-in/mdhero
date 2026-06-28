@@ -1,9 +1,9 @@
 use tauri::{
-    menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
-    AppHandle,
+    menu::{Menu, MenuItem, PredefinedMenuItem, Submenu, WINDOW_SUBMENU_ID},
+    AppHandle, Runtime,
 };
 
-pub fn create_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, tauri::Error> {
+pub fn create_menu<R: Runtime>(app: &AppHandle<R>) -> Result<Menu<R>, tauri::Error> {
     // macOS app menu (app name menu with Quit, Hide, etc.)
     let app_menu = Submenu::with_items(
         app,
@@ -76,7 +76,31 @@ pub fn create_menu(app: &AppHandle) -> Result<Menu<tauri::Wry>, tauri::Error> {
         ],
     )?;
 
-    let menu = Menu::with_items(app, &[&app_menu, &file_menu, &edit_menu, &view_menu])?;
+    // Standard macOS "Window" menu. The submenu MUST use Tauri's
+    // `WINDOW_SUBMENU_ID` so that `AppHandle::set_menu` registers it as the
+    // NSApp windows menu (`set_as_windows_menu_for_nsapp`). That registration
+    // is what makes macOS inject the standard window commands — including the
+    // Sequoia "Move & Resize" window-tiling shortcuts (fn+Control+arrows) — and
+    // the live window list. Without a submenu carrying this id the tiling
+    // shortcuts (and Cmd+M minimize) never exist for the app.
+    //
+    // `close_window` is intentionally omitted: its default accelerator is
+    // Cmd+W, which the app already binds in the File menu to "Close Tab".
+    let window_menu = Submenu::with_id_and_items(
+        app,
+        WINDOW_SUBMENU_ID,
+        "Window",
+        true,
+        &[
+            &PredefinedMenuItem::minimize(app, None)?,
+            &PredefinedMenuItem::maximize(app, None)?,
+        ],
+    )?;
+
+    let menu = Menu::with_items(
+        app,
+        &[&app_menu, &file_menu, &edit_menu, &view_menu, &window_menu],
+    )?;
 
     Ok(menu)
 }

@@ -31,3 +31,14 @@ tauri-plugin-process = "2"
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"
 
+[dev-dependencies]
+# `test` enables Tauri's mock runtime (tauri::test) used by the menu test.
+tauri = { version = "2", features = ["test"] }
+
+# muda menu objects can only be created on the main thread, so this target opts
+# out of the default (threaded) libtest harness and runs on the binary's main
+# thread via `fn main()`.
+[[test]]
+name = "menu_window"
+harness = false
+

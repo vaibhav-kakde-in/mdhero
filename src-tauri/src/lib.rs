@@ -1,5 +1,5 @@
 mod commands;
-mod menu;
+pub mod menu;
 mod watcher;
 
 use std::sync::Mutex;
