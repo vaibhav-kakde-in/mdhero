@@ -3,7 +3,7 @@
   import { document as docStore } from "$lib/stores/document";
   import { tabStore, HOME_TAB_ID, type Tab } from "$lib/stores/tabs";
   import { initRenderer, renderFull } from "$lib/renderer/pipeline";
-  import { getBaseDir, openFile, openFileDialog, saveFile } from "$lib/tauri/files";
+  import { allowAssets, getBaseDir, openFile, openFileDialog, saveFile } from "$lib/tauri/files";
   import { settings } from "$lib/stores/settings";
   import { startFileWatcher } from "$lib/tauri/watcher";
   import { themeMode, cycleTheme } from "$lib/stores/theme";
@@ -173,6 +173,10 @@
       if (activeTab.isEditing && activeTab.dirty) {
         const baseDir = getBaseDir(activeTab.filePath);
         const result = renderFull(activeTab.editContent, baseDir);
+        // Fire-and-forget: referenced images were almost always allowed at open;
+        // a brand-new external image typed mid-edit self-heals on the next
+        // render/reload. Not worth making this sync path async (#31).
+        allowAssets(result.assetPaths);
         // Update the rendered HTML in the docStore so the viewer reflects
         // the unsaved edits. We do NOT call tabStore.updateTabContent or
         // markSaved — the source on disk is unchanged, dirty stays true.
@@ -207,6 +211,7 @@
       await saveFile(tab.filePath, tab.editContent);
       const baseDir = getBaseDir(tab.filePath);
       const result = renderFull(tab.editContent, baseDir);
+      await allowAssets(result.assetPaths);
       tabStore.markSaved(tab.id);
       tabStore.updateTabContent(
         tab.filePath,
@@ -262,7 +267,7 @@
     return true;
   }
 
-  onMount(async () => {
+  onMount(() => {
     initRenderer();
     rendererReady = true;
 
@@ -337,35 +342,43 @@
 
     // Listen for keyboard shortcuts and scroll for reading progress
     window.addEventListener("keydown", handleKeydown);
+    window.addEventListener("keyup", handleKeyup);
+    // Safety net: if focus leaves while j/k is held, keyup may never fire — stop the loop.
+    window.addEventListener("blur", stopScroll);
     window.addEventListener("scroll", handleScrollForProgress, { passive: true });
     window.addEventListener("beforeunload", saveProgressNow);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    // Check for files opened via "Open With" / double-click (buffered in Rust state)
-    try {
-      const { invoke } = await import("@tauri-apps/api/core");
-      const openedFiles = await invoke<string[]>("get_opened_files");
-      if (openedFiles.length > 0) {
-        await openFile(openedFiles[0]);
-      }
-    } catch {}
+    void (async () => {
+      // Check for files opened via "Open With" / double-click (buffered in Rust state)
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const openedFiles = await invoke<string[]>("get_opened_files");
+        if (openedFiles.length > 0) {
+          await openFile(openedFiles[0]);
+        }
+      } catch {}
 
-    // Check for updates (non-blocking, skips in dev)
-    checkForUpdates();
+      // Check for updates (non-blocking, skips in dev)
+      checkForUpdates();
 
-    // Check for CLI file argument
-    try {
-      const { getMatches } = await import("@tauri-apps/plugin-cli");
-      const matches = await getMatches();
-      if (matches.args?.file?.value) {
-        await openFile(matches.args.file.value as string);
+      // Check for CLI file argument
+      try {
+        const { getMatches } = await import("@tauri-apps/plugin-cli");
+        const matches = await getMatches();
+        if (matches.args?.file?.value) {
+          await openFile(matches.args.file.value as string);
+        }
+      } catch {
+        // CLI plugin may not be available in dev
       }
-    } catch {
-      // CLI plugin may not be available in dev
-    }
+    })();
 
     return () => {
       window.removeEventListener("keydown", handleKeydown);
+      window.removeEventListener("keyup", handleKeyup);
+      window.removeEventListener("blur", stopScroll);
+      stopScroll();
       window.removeEventListener("scroll", handleScrollForProgress);
       window.removeEventListener("beforeunload", saveProgressNow);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -374,6 +387,73 @@
 
   let lastKey = "";
   let lastKeyTime = 0;
+
+  // Continuous vim j/k scrolling. Instead of firing a per-press smooth animation
+  // (which eases per 100px chunk and gets cancelled/restarted by OS key-repeat,
+  // producing visible stutter), we drive a single requestAnimationFrame loop while
+  // the key is held and stop it on keyup. This matches the native, continuous feel
+  // of arrow-key/trackpad scrolling. The half-page (d/u) and gg/G jumps stay smooth.
+  //
+  // Velocity is time-based (px/sec, scaled by the frame delta) rather than a fixed
+  // px-per-frame step, so the speed stays consistent regardless of display refresh
+  // rate (60Hz vs 120Hz ProMotion) and roughly matches native arrow-key scrolling.
+  const SCROLL_SPEED = 1000; // px per second
+  let scrollRAF: number | null = null;
+  let scrollDir = 0; // -1 = up, +1 = down, 0 = stopped
+  let scrollLastTs = 0;
+  const pressedScrollKeys = new Set<"j" | "k">();
+  let activeScrollKey: "j" | "k" | null = null;
+
+  function updateScrollDirection() {
+    scrollDir = activeScrollKey === "j" ? 1 : activeScrollKey === "k" ? -1 : 0;
+  }
+
+  function startScroll(key: "j" | "k") {
+    pressedScrollKeys.add(key);
+    activeScrollKey = key;
+    updateScrollDirection();
+    if (scrollRAF !== null) return;
+    scrollLastTs = 0;
+    const step = (ts: number) => {
+      if (scrollDir === 0) {
+        scrollRAF = null;
+        return;
+      }
+      // First frame establishes the baseline timestamp; no movement yet.
+      const dt = scrollLastTs === 0 ? 0 : ts - scrollLastTs;
+      scrollLastTs = ts;
+      window.scrollBy(0, scrollDir * SCROLL_SPEED * (dt / 1000));
+      scrollRAF = requestAnimationFrame(step);
+    };
+    scrollRAF = requestAnimationFrame(step);
+  }
+
+  function stopScroll() {
+    pressedScrollKeys.clear();
+    activeScrollKey = null;
+    scrollDir = 0;
+    scrollLastTs = 0;
+    if (scrollRAF !== null) {
+      cancelAnimationFrame(scrollRAF);
+      scrollRAF = null;
+    }
+  }
+
+  function releaseScrollKey(key: "j" | "k") {
+    pressedScrollKeys.delete(key);
+    if (activeScrollKey !== key) return;
+
+    if (pressedScrollKeys.has("j")) {
+      activeScrollKey = "j";
+    } else if (pressedScrollKeys.has("k")) {
+      activeScrollKey = "k";
+    } else {
+      activeScrollKey = null;
+    }
+
+    updateScrollDirection();
+    if (scrollDir === 0) stopScroll();
+  }
 
   function isInputFocused(): boolean {
     const el = document.activeElement;
@@ -535,11 +615,14 @@
     switch (e.key) {
       case "j":
         e.preventDefault();
-        window.scrollBy({ top: 100, behavior: "smooth" });
+        // Ignore OS key-repeat — the rAF loop drives continuous motion until keyup.
+        if (e.repeat) break;
+        startScroll("j");
         break;
       case "k":
         e.preventDefault();
-        window.scrollBy({ top: -100, behavior: "smooth" });
+        if (e.repeat) break;
+        startScroll("k");
         break;
       case "d":
         // half page down
@@ -584,6 +667,11 @@
 
     lastKey = e.key;
     lastKeyTime = now;
+  }
+
+  function handleKeyup(e: KeyboardEvent) {
+    // Stop the continuous j/k scroll loop when the key is released.
+    if (e.key === "j" || e.key === "k") releaseScrollKey(e.key);
   }
 
   // Sync tab switching with document store — only reads $activeTabId and $tabs

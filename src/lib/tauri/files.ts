@@ -34,6 +34,10 @@ export async function openFile(path: string): Promise<void> {
     const content = await readMarkdownFile(absolutePath);
     const result = renderFull(content, baseDir);
 
+    // Whitelist the document's local images with the asset protocol before the
+    // HTML hits the DOM, so images outside the static $HOME scope load (#31).
+    await allowAssets(result.assetPaths);
+
     tabStore.addTab(absolutePath, fileName, content, result.html, result.frontmatter, result.wordCount);
 
     document.set({
@@ -94,6 +98,8 @@ export async function reloadCurrentFile(path: string): Promise<void> {
     const result = renderFull(content, baseDir);
     const fileName = absolutePath.split("/").pop() ?? absolutePath;
 
+    await allowAssets(result.assetPaths);
+
     tabStore.updateTabContent(absolutePath, content, result.html, result.frontmatter, result.wordCount);
 
     document.set({
@@ -119,4 +125,15 @@ export function getBaseDir(path: string): string {
 
 export async function resolvePath(path: string): Promise<string> {
   return invoke<string>("resolve_path", { path });
+}
+
+/**
+ * Whitelist resolved local image paths with the webview's asset protocol so
+ * they can be fetched regardless of the static $HOME scope (issue #31). A
+ * failure here must not block text rendering — a broken image is acceptable
+ * degradation, a blank document is not — so it's swallowed.
+ */
+export async function allowAssets(paths: string[]): Promise<void> {
+  if (paths.length === 0) return;
+  await invoke("allow_assets", { paths }).catch(() => {});
 }
