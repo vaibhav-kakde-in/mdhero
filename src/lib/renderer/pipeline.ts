@@ -226,7 +226,7 @@ function resolveRelativeImages(html: string, baseDir: string, collected: string[
   return html.replace(
     /(<img\s[^>]*?\bsrc=")(?!https?:\/\/|data:|blob:|asset:|file:)([^"]+)(")/gi,
     (_match, before, src, after) => {
-      const imagePath = resolveImagePath(src, baseDir);
+      const imagePath = resolveLocalPath(src, baseDir);
       try {
         const url = `${before}${convertFileSrc(imagePath)}${after}`;
         collected.push(imagePath);
@@ -252,7 +252,7 @@ function resolveSrcset(srcset: string, baseDir: string, collected: string[]): st
       if (isExternalSrc(src)) return trimmed;
 
       try {
-        const imagePath = resolveImagePath(src, baseDir);
+        const imagePath = resolveLocalPath(src, baseDir);
         const converted = convertFileSrc(imagePath);
         collected.push(imagePath);
         return [converted, ...descriptor].join(" ");
@@ -266,8 +266,13 @@ function resolveSrcset(srcset: string, baseDir: string, collected: string[]): st
 function isExternalSrc(src: string): boolean {
   return /^(?:https?:\/\/|data:|blob:|asset:|file:)/i.test(src);
 }
-
-function resolveImagePath(src: string, baseDir: string): string {
+/**
+ * Resolve a local path (image src or markdown link href) against `baseDir`.
+ * Decodes `%20`, passes absolute/Windows paths through, and normalizes `./`,
+ * `../`, and mixed separators. Shared by image rendering and local-file links
+ * (issue #30) so there's a single resolution implementation.
+ */
+export function resolveLocalPath(src: string, baseDir: string): string {
   const decodedSrc = decodeImageSrc(src);
   if (isAbsolutePath(decodedSrc)) return decodedSrc;
   return normalizePath(`${baseDir}/${decodedSrc}`);

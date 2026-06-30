@@ -127,6 +127,17 @@ export async function resolvePath(path: string): Promise<string> {
   return invoke<string>("resolve_path", { path });
 }
 
+/** Whether a path exists on disk (for the local-file-link existence check, #30). */
+export async function pathExists(path: string): Promise<boolean> {
+  return invoke<boolean>("path_exists", { path });
+}
+
+/** Open a non-markdown local file in the OS default app (#30). */
+export async function openWithSystem(path: string): Promise<void> {
+  const { openPath } = await import("@tauri-apps/plugin-opener");
+  await openPath(path);
+}
+
 /**
  * Whitelist resolved local image paths with the webview's asset protocol so
  * they can be fetched regardless of the static $HOME scope (issue #31). A
