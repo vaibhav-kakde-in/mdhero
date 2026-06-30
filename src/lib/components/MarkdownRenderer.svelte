@@ -2,7 +2,7 @@
   import { onMount, tick } from "svelte";
   import { get } from "svelte/store";
   import { invoke } from "@tauri-apps/api/core";
-  import { settings, fontFamilyMap } from "$lib/stores/settings";
+  import { settings, fontFamilyMap, getContentMaxWidth } from "$lib/stores/settings";
   import { tocEntries, activeHeadingId, extractToc, tocVisible, isObserverPaused } from "$lib/stores/toc";
   import { aiLookup, setPendingSelection } from "$lib/stores/aiLookup";
   import mermaid from "mermaid";
@@ -258,7 +258,7 @@
   class="md-content prose prose-slate dark:prose-invert max-w-none mx-auto px-8 py-8 transition-all"
   class:toc-offset={$tocVisible && $tocEntries.length > 0}
   style="
-    max-width: {$settings.maxWidth}px;
+    max-width: {getContentMaxWidth($settings)};
     font-size: {$settings.fontSize}px;
     line-height: {$settings.lineHeight};
     font-family: {fontFamilyMap[$settings.fontFamily]};

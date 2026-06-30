@@ -6,13 +6,13 @@
     onChange,
     fontSize = 14,
     lineHeight = 1.6,
-    maxWidth = 720,
+    maxWidth = "720px",
   }: {
     value: string;
     onChange: (newValue: string) => void;
     fontSize?: number;
     lineHeight?: number;
-    maxWidth?: number;
+    maxWidth?: string;
   } = $props();
 
   let textareaEl: HTMLTextAreaElement | undefined = $state();
@@ -69,7 +69,7 @@
     oninput={handleInput}
     onkeydown={handleKeydown}
     class="editor"
-    style="font-size: {fontSize}px; line-height: {lineHeight}; max-width: {maxWidth}px;"
+    style="font-size: {fontSize}px; line-height: {lineHeight}; max-width: {maxWidth};"
     spellcheck="false"
     autocomplete="off"
     autocapitalize="off"

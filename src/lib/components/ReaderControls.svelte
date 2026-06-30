@@ -56,6 +56,26 @@
       />
     </div>
 
+    <div class="rc-group">
+      <span class="rc-label">Width mode</span>
+      <div class="rc-segmented">
+        <button
+          onclick={() => settings.update((s) => ({ ...s, widthMode: "comfortable" }))}
+          class="rc-seg-btn"
+          class:active={$settings.widthMode === "comfortable"}
+        >
+          Comfortable
+        </button>
+        <button
+          onclick={() => settings.update((s) => ({ ...s, widthMode: "wide" }))}
+          class="rc-seg-btn"
+          class:active={$settings.widthMode === "wide"}
+        >
+          Wide
+        </button>
+      </div>
+    </div>
+
     <div class="rc-group" style="margin-bottom: 0;">
       <div class="rc-label-row">
         <span class="rc-label">Content width</span>

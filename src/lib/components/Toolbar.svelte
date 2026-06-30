@@ -1,5 +1,6 @@
 <script lang="ts">
   import { document } from "../stores/document";
+  import { settings } from "../stores/settings";
   import { themeMode, cycleTheme } from "../stores/theme";
   import { tocVisible, tocEntries, toggleToc, activeHeadingId } from "../stores/toc";
   import { openFileDialog } from "../tauri/files";
@@ -62,6 +63,14 @@
   function handleThemeToggle() {
     closeAll();
     themeMode.update((m) => cycleTheme(m));
+  }
+
+  function toggleWidthMode() {
+    closeAll();
+    settings.update((s) => ({
+      ...s,
+      widthMode: s.widthMode === "wide" ? "comfortable" : "wide",
+    }));
   }
 
   async function handleExportPdf() {
@@ -147,6 +156,31 @@
       title={$document.renderedHtml ? 'Reading preferences (Aa)' : 'Reading preferences (open a file first)'}
     >
       <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><text x="1" y="12" font-size="12" font-weight="700" stroke="none" fill="currentColor" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Aa</text></svg>
+    </button>
+
+    <button
+      onclick={toggleWidthMode}
+      class="btn btn-icon"
+      class:active={$settings.widthMode === "wide"}
+      disabled={!$document.renderedHtml}
+      title={!$document.renderedHtml
+        ? 'Toggle wide view (open a file first)'
+        : $settings.widthMode === "wide"
+        ? 'Use comfortable width'
+        : 'Use wide viewport'}
+      aria-label={$settings.widthMode === "wide" ? 'Use comfortable width' : 'Use wide viewport'}
+    >
+      <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2.5 5.5V3.5h2" />
+        <path d="M13.5 5.5V3.5h-2" />
+        <path d="M2.5 10.5v2h2" />
+        <path d="M13.5 10.5v2h-2" />
+        <path d="M5.5 8h5" />
+        <path d="M4 8l1.5-1.5" />
+        <path d="M4 8l1.5 1.5" />
+        <path d="M12 8l-1.5-1.5" />
+        <path d="M12 8l-1.5 1.5" />
+      </svg>
     </button>
 
     <button
