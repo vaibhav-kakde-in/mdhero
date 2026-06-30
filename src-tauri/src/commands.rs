@@ -67,6 +67,14 @@ pub fn resolve_path(path: String) -> Result<String, String> {
         .ok_or_else(|| format!("Path is not valid UTF-8: {}", path))
 }
 
+/// Whether a path exists on disk. Used by the local-file-link handler (#30)
+/// to surface a graceful "file not found" toast before attempting to open,
+/// instead of silently no-opping or replacing the current document.
+#[tauri::command]
+pub fn path_exists(path: String) -> bool {
+    Path::new(&path).exists()
+}
+
 /// Allow the webview's asset protocol to serve specific image files.
 ///
 /// The static `assetProtocol.scope` in tauri.conf.json only covers `$HOME`, so

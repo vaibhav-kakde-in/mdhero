@@ -10,15 +10,34 @@
   let {
     html = "",
     onImageClick = (_src: string, _all: string[], _idx: number) => {},
+    onLocalLink,
   }: {
     html: string;
     onImageClick?: (src: string, allImages: string[], index: number) => void;
+    /**
+     * Called when a link to a local file (relative or absolute path, no URL
+     * scheme) is clicked. The parent resolves it against the current document
+     * and opens it in-app or via the OS (issue #30). When omitted, such links
+     * fall back to the external opener.
+     */
+    onLocalLink?: (href: string) => void;
   } = $props();
+
+  /** True for hrefs that are real URLs (browser/mail/etc.), not filesystem paths. */
+  function isUrlHref(href: string): boolean {
+    // Any explicit scheme except file: — http, https, mailto, tel, data, blob…
+    // `file:` is a local file (handled by onLocalLink), so it's excluded here.
+    return /^(?!file:)[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("//");
+  }
 
   let articleEl: HTMLElement | undefined = $state();
   let observer: IntersectionObserver | undefined;
   let lastMermaidTheme = "";
   let tooltipEl: HTMLDivElement | undefined;
+
+  function hideTooltip() {
+    if (tooltipEl) tooltipEl.style.display = "none";
+  }
 
   function initMermaid() {
     const isDark = document.documentElement.classList.contains("dark");
@@ -124,12 +143,19 @@
     return () => {
       articleEl?.removeEventListener("contextmenu", handleContextMenu);
       observer?.disconnect();
+      // Remove the body-level tooltip so it can't outlive the component.
+      tooltipEl?.remove();
+      tooltipEl = undefined;
     };
   });
 
   $effect(() => {
     // Re-run when html changes
     html;
+
+    // A re-render (e.g. opening a linked file in a new tab) replaces the
+    // article, so a hover's mouseleave may never fire — clear any stuck tooltip.
+    hideTooltip();
 
     tick().then(() => {
       if (!articleEl) return;
@@ -151,7 +177,7 @@
       addLinkTooltips();
 
       // Open external links in system browser
-      addExternalLinkHandlers();
+      addLinkHandlers();
 
       // Render Mermaid diagrams
       renderMermaidBlocks();
@@ -177,7 +203,11 @@
     if (!articleEl) return;
 
     // Create tooltip element once
-    if (!tooltipEl) {
+    // Sweep any orphaned tooltips left by dev HMR reloads so they can't pile up.
+    document.querySelectorAll(".link-tooltip").forEach((el) => {
+      if (el !== tooltipEl) el.remove();
+    });
+    if (!tooltipEl || !tooltipEl.isConnected) {
       tooltipEl = document.createElement("div");
       tooltipEl.className = "link-tooltip";
       document.body.appendChild(tooltipEl);
@@ -198,23 +228,29 @@
         tooltipEl!.style.top = `${rect.bottom + 4}px`;
       });
 
-      link.addEventListener("mouseleave", () => {
-        tooltipEl!.style.display = "none";
-      });
+      link.addEventListener("mouseleave", hideTooltip);
     });
   }
 
-  function addExternalLinkHandlers() {
+  function addLinkHandlers() {
     if (!articleEl) return;
     const links = articleEl.querySelectorAll("a[href]");
     links.forEach((link) => {
-      if ((link as HTMLElement).dataset.externalBound) return;
+      if ((link as HTMLElement).dataset.linkBound) return;
       const href = link.getAttribute("href") ?? "";
-      // Skip anchor links (in-page navigation)
+      // Skip anchor links (in-page navigation handled by the browser default).
       if (!href || href.startsWith("#")) return;
-      (link as HTMLElement).dataset.externalBound = "true";
+      (link as HTMLElement).dataset.linkBound = "true";
       link.addEventListener("click", async (e) => {
         e.preventDefault();
+        hideTooltip();
+        // Local file path (no URL scheme, or a file: URL) → let the parent
+        // resolve it against the current document and open it (#30).
+        if (onLocalLink && !isUrlHref(href)) {
+          onLocalLink(href);
+          return;
+        }
+        // Real URL → external opener (browser, mail client, …).
         try {
           const { openUrl } = await import("@tauri-apps/plugin-opener");
           await openUrl(href);

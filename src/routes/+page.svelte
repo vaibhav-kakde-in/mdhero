@@ -2,8 +2,17 @@
   import { onMount, tick } from "svelte";
   import { document as docStore } from "$lib/stores/document";
   import { tabStore, HOME_TAB_ID, type Tab } from "$lib/stores/tabs";
-  import { initRenderer, renderFull } from "$lib/renderer/pipeline";
-  import { allowAssets, getBaseDir, openFile, openFileDialog, saveFile } from "$lib/tauri/files";
+  import { initRenderer, renderFull, resolveLocalPath } from "$lib/renderer/pipeline";
+  import {
+    allowAssets,
+    getBaseDir,
+    openFile,
+    openFileDialog,
+    openWithSystem,
+    pathExists,
+    saveFile,
+  } from "$lib/tauri/files";
+  import { showToast } from "$lib/stores/toast";
   import { settings, getContentMaxWidth } from "$lib/stores/settings";
   import { startFileWatcher } from "$lib/tauri/watcher";
   import { themeMode, cycleTheme } from "$lib/stores/theme";
@@ -29,6 +38,7 @@
   import ScrollToTop from "$lib/components/ScrollToTop.svelte";
   import ImageLightbox from "$lib/components/ImageLightbox.svelte";
   import UpdateToast from "$lib/components/UpdateToast.svelte";
+  import Toast from "$lib/components/Toast.svelte";
   import Editor from "$lib/components/Editor.svelte";
   import { updateScrollPercent } from "$lib/stores/recents";
   import { checkForUpdates, updateAvailable, updateDismissed, checkInFlight } from "$lib/stores/updater";
@@ -238,6 +248,79 @@
       console.error("Save failed:", err);
       alert(`Save failed: ${err}`);
     }
+  }
+
+  /**
+   * Open a local file linked from the rendered markdown (issue #30). Resolves
+   * the href against the current document's directory: markdown files open in a
+   * new in-app tab, other files (PDF, images, …) open in the OS default app,
+   * and a missing target surfaces a toast without disturbing the current tab.
+   */
+  async function handleLocalLink(href: string) {
+    const tab = activeTab;
+    // paste:// and url:// tabs have no real base dir to resolve against — keep
+    // the prior external-opener behavior for their links.
+    if (!tab || !tab.filePath || tab.filePath.startsWith("paste://") || tab.filePath.startsWith("url://")) {
+      try {
+        const { openUrl } = await import("@tauri-apps/plugin-opener");
+        await openUrl(href);
+      } catch {}
+      return;
+    }
+
+    // Strip a trailing #fragment / ?query — we open the file, not an in-file
+    // anchor (cross-file anchor scroll is out of scope for now). A bare "#frag"
+    // was already handled as in-page navigation in the renderer.
+    let target = href.replace(/[?#].*$/, "");
+    // file: URLs arrive here (they're local) — reduce to a plain path.
+    target = target.replace(/^file:\/\//i, "");
+    if (!target) return;
+
+    const resolved = resolveLocalPath(target, getBaseDir(tab.filePath));
+    const name = resolved.split(/[\\/]/).pop() || resolved;
+
+    if (!(await pathExists(resolved))) {
+      showToast(`Can't find “${name}”`);
+      return;
+    }
+
+    if (/\.(md|markdown)$/i.test(resolved)) {
+      await openFile(resolved);
+      return;
+    }
+
+    // Security: never hand executable/script types to the OS opener. A clicked
+    // link with deceptive text could otherwise launch a pre-existing payload in
+    // one click. Everything else (PDF, images, docs…) opens in the default app.
+    if (isExecutablePath(resolved)) {
+      showToast(`Won't open executable file “${name}”. Open it from your file manager if you trust it.`);
+      return;
+    }
+
+    try {
+      await openWithSystem(resolved);
+    } catch {
+      showToast(`Couldn't open “${name}”`);
+    }
+  }
+
+  // Extensions that can run code when opened with the OS default handler.
+  const EXECUTABLE_EXTENSIONS = new Set([
+    // macOS / shell / scripting
+    "app", "command", "sh", "bash", "zsh", "scpt", "applescript",
+    "terminal", "workflow", "action", "osascript",
+    // Windows
+    "exe", "bat", "cmd", "com", "scr", "ps1", "vbs", "vbe", "js", "jse",
+    "wsf", "msi", "msp", "cpl", "lnk", "reg", "hta", "pif",
+    // cross-platform
+    "jar",
+  ]);
+
+  function isExecutablePath(path: string): boolean {
+    const name = path.split(/[\\/]/).pop() || "";
+    const dot = name.lastIndexOf(".");
+    if (dot < 0) return false;
+    return EXECUTABLE_EXTENSIONS.has(name.slice(dot + 1).toLowerCase());
   }
 
   function handleEditToggle() {
@@ -826,6 +909,7 @@
         <MarkdownRenderer
           html={$docStore.renderedHtml}
           onImageClick={(src, all, idx) => { lightboxImages = all; lightboxIndex = idx; lightboxVisible = true; }}
+          onLocalLink={handleLocalLink}
         />
       </main>
     {/if}
@@ -838,6 +922,7 @@
     <EmptyState onOpenUrl={() => { pasteDefaultMode = "url"; pasteVisible = true; }} />
   {/if}
   <UpdateToast />
+  <Toast />
 </div>
 
 <style>
