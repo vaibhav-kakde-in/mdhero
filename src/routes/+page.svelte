@@ -897,15 +897,15 @@
         maxWidth={contentMaxWidth}
       />
     {:else if rawMode}
-      <main class="content-main">
+      <main class="content-main" class:toc-spaced={$tocVisible && $tocEntries.length > 0}>
         <pre
           class="raw-source"
           style="font-size: {$settings.fontSize}px; line-height: {$settings.lineHeight}; max-width: {contentMaxWidth};"
         ><code>{$docStore.content}</code></pre>
       </main>
     {:else}
-      <FrontmatterBar />
-      <main class="content-main">
+      <main class="content-main" class:toc-spaced={$tocVisible && $tocEntries.length > 0}>
+        <FrontmatterBar />
         <MarkdownRenderer
           html={$docStore.renderedHtml}
           onImageClick={(src, all, idx) => { lightboxImages = all; lightboxIndex = idx; lightboxVisible = true; }}
@@ -974,6 +974,11 @@
 
   .content-main {
     padding-bottom: 4rem;
+    transition: padding-left 0.15s ease;
+  }
+
+  .content-main.toc-spaced {
+    padding-left: 240px;
   }
 
   .raw-source {
