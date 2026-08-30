@@ -42,7 +42,7 @@
     "@types/mark.js": "^8.11.12",
     "@types/markdown-it": "^14.1.2",
     "autoprefixer": "^10.4.27",
-    "postcss": "^8.5.8",
+    "postcss": "^8.5.23",
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.0",
     "tailwindcss": "^4.2.2",
