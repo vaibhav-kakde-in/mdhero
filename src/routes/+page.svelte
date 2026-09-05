@@ -17,7 +17,7 @@
   import { showToast } from "$lib/stores/toast";
   import { basename } from "$lib/utils/path";
   import { settings, getContentMaxWidth } from "$lib/stores/settings";
-  import { startFileWatcher } from "$lib/tauri/watcher";
+  import { startFileWatcher, stopFileWatcher } from "$lib/tauri/watcher";
   import { themeMode, cycleTheme } from "$lib/stores/theme";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { invoke } from "@tauri-apps/api/core";
@@ -1012,10 +1012,31 @@
     });
   });
 
-  // Watch for file path changes to set up watcher (only when path actually changes)
+  // Start/stop the file watcher as the active document changes.
+  //
+  // The stop half matters: closing the last tab leaves docStore.filePath null,
+  // and without an explicit teardown the watcher for the file just closed kept
+  // running. An external edit to it then fired reloadCurrentFile, which calls
+  // docStore.set — so a document the user had closed reappeared on top of the
+  // home screen. `url://` joins the sentinels here too: it is not a filesystem
+  // path, so start_watching could never do anything useful with it.
   $effect(() => {
     const path = $docStore.filePath;
-    if (path && !path.startsWith("paste://") && !path.startsWith("new://") && path !== lastWatchedPath) {
+    const watchable =
+      !!path
+      && !path.startsWith("paste://")
+      && !path.startsWith("new://")
+      && !path.startsWith("url://");
+
+    if (!watchable) {
+      if (lastWatchedPath !== null) {
+        lastWatchedPath = null;
+        stopFileWatcher();
+      }
+      return;
+    }
+
+    if (path !== lastWatchedPath) {
       lastWatchedPath = path;
       startFileWatcher(path);
     }

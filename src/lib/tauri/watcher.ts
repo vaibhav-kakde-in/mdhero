@@ -31,6 +31,13 @@ export async function startFileWatcher(filePath: string): Promise<void> {
   invoke("start_watching", { path: filePath }).catch(() => {});
 }
 
+/**
+ * Tear the watcher down on both sides of the IPC boundary.
+ *
+ * Dropping only the JS listener would leave the Rust debouncer watching the
+ * directory of a file nobody has open any more — it keeps a thread and an OS
+ * watch handle alive for the rest of the session.
+ */
 export function stopFileWatcher(): void {
   if (reloadTimeout) {
     clearTimeout(reloadTimeout);
@@ -40,4 +47,5 @@ export function stopFileWatcher(): void {
     unlisten();
     unlisten = null;
   }
+  invoke("stop_watching").catch(() => {});
 }
