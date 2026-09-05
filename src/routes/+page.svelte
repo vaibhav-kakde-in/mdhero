@@ -451,6 +451,23 @@
     return true;
   }
 
+  // Close the active tab, from either Cmd+W route (the File > Close Tab menu
+  // item, or the keydown fallback). The guard makes a double-fire harmless: if
+  // a platform delivers both the menu accelerator and the keydown for one press,
+  // the second call returns instead of closing a second tab. handleCloseTab
+  // always awaits at least a microtask, so the flag is set before it can re-enter.
+  let closeInFlight = false;
+  async function closeActiveTab() {
+    if (closeInFlight) return;
+    closeInFlight = true;
+    try {
+      const t = tabStore.getActiveTab();
+      if (t) await handleCloseTab(t.id);
+    } finally {
+      closeInFlight = false;
+    }
+  }
+
   // Close-on-ESC: close the active file tab, and quit the app if it was the last
   // one (on macOS closing the window alone leaves the app in the dock). Async
   // because the dirty-confirm dialog is — a cancelled discard must not quit.
@@ -488,6 +505,13 @@
     };
     (window as any).__mdhero_find = () => {
       searchVisible = !searchVisible;
+    };
+    // File > Close Tab (Cmd/Ctrl+W). The menu item declared this accelerator
+    // but lib.rs had no branch for its id, so the event was dropped — and
+    // because the native menu consumes the key, the keydown fallback never ran
+    // either: the shortcut and the menu item were both dead.
+    (window as any).__mdhero_close_tab = () => {
+      void closeActiveTab();
     };
     (window as any).__mdhero_zen = () => {
       zenMode = !zenMode;
@@ -825,12 +849,12 @@
       return;
     }
 
-    // Cmd+W close tab (with dirty confirm)
+    // Cmd+W close tab (with dirty confirm). Usually dead code: the File menu
+    // binds the same accelerator and native menus consume the key before the
+    // webview sees it. Kept as the fallback for any platform where it doesn't.
     if ((e.metaKey || e.ctrlKey) && e.key === "w") {
       e.preventDefault();
-      const t = tabStore.getActiveTab();
-      if (!t) return;
-      void handleCloseTab(t.id);
+      void closeActiveTab();
       return;
     }
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "f") {

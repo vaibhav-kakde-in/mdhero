@@ -126,6 +126,9 @@ pub fn run() {
                         "find" => {
                             let _ = window.eval("window.__mdhero_find?.()");
                         }
+                        "close" => {
+                            let _ = window.eval("window.__mdhero_close_tab?.()");
+                        }
                         "check_updates" => {
                             let _ = window.eval("window.__mdhero_check_updates?.()");
                         }
