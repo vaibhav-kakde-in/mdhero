@@ -5,6 +5,7 @@ import { document } from "../stores/document";
 import { tabStore } from "../stores/tabs";
 import { renderFull } from "../renderer/pipeline";
 import { addRecentFile } from "../stores/recents";
+import { basename } from "../utils/path";
 
 export async function readMarkdownFile(path: string): Promise<string> {
   return invoke<string>("read_markdown_file", { path });
@@ -16,7 +17,7 @@ export async function saveFile(path: string, content: string): Promise<void> {
 
 export async function openFile(path: string): Promise<void> {
   const absolutePath = await resolvePath(path);
-  const fileName = absolutePath.split("/").pop() ?? absolutePath;
+  const fileName = basename(absolutePath);
   const baseDir = getBaseDir(absolutePath);
 
   document.set({
@@ -107,7 +108,7 @@ export async function saveAsNewDocument(tabId: string, content: string): Promise
   });
   if (!chosen) return null;
 
-  const fileName = chosen.split("/").pop() ?? chosen;
+  const fileName = basename(chosen);
   await saveFile(chosen, content);
   tabStore.rebindPath(tabId, chosen, fileName);
   addRecentFile(chosen, fileName);
@@ -143,7 +144,7 @@ export async function reloadCurrentFile(path: string): Promise<void> {
     const content = await readMarkdownFile(absolutePath);
     const baseDir = getBaseDir(absolutePath);
     const result = renderFull(content, baseDir);
-    const fileName = absolutePath.split("/").pop() ?? absolutePath;
+    const fileName = basename(absolutePath);
 
     await allowAssets(result.assetPaths);
 

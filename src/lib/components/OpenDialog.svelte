@@ -8,6 +8,7 @@
   import { renderFull } from "$lib/renderer/pipeline";
   import { tabStore } from "$lib/stores/tabs";
   import { document as docStore } from "$lib/stores/document";
+  import { basename, shortenHomePath } from "$lib/utils/path";
 
   let { visible = $bindable(false) }: { visible: boolean } = $props();
 
@@ -124,15 +125,6 @@
     return new Date(ts).toLocaleDateString();
   }
 
-  function shortenPath(path: string): string {
-    const home = "/Users/";
-    if (path.startsWith(home)) {
-      const rest = path.slice(home.length);
-      const parts = rest.split("/");
-      if (parts.length > 1) return "~/" + parts.slice(1).join("/");
-    }
-    return path;
-  }
 
   function formatPlanName(name: string): string {
     return name.replace(/\.md$/, "").replace(/[-_]/g, " ");
@@ -162,9 +154,6 @@
     } catch {}
   }
 
-  function getFolderName(path: string): string {
-    return path.split("/").pop() || path;
-  }
 
   $effect(() => {
     if (visible && activeTab === "plans") {
@@ -279,7 +268,7 @@
                 </div>
                 <div class="file-info">
                   <span class="file-name">{file.name}</span>
-                  <span class="file-path">{shortenPath(file.path)}</span>
+                  <span class="file-path">{shortenHomePath(file.path)}</span>
                 </div>
                 <span class="file-time">{formatTime(file.openedAt)}</span>
               </button>
@@ -304,9 +293,9 @@
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M1.5 4.5l3-2.5h8v9H1.5V4.5z"/><line x1="1.5" y1="4.5" x2="4.5" y2="4.5"/>
                   </svg>
-                  <span class="folder-name">{getFolderName(folder)}</span>
+                  <span class="folder-name">{basename(folder)}</span>
                   <span class="folder-file-count">{folderFiles[folder]?.length ?? '...'}</span>
-                  <span class="folder-path">{shortenPath(folder)}</span>
+                  <span class="folder-path">{shortenHomePath(folder)}</span>
                 </button>
                 {#if expandedDialogFolders.has(folder)}
                   {#if folderFiles[folder]}
@@ -353,7 +342,7 @@
                 </div>
                 <div class="file-info">
                   <span class="file-name">{formatPlanName(plan.name)}</span>
-                  <span class="file-path">{shortenPath(plan.path)}</span>
+                  <span class="file-path">{shortenHomePath(plan.path)}</span>
                 </div>
                 <span class="file-time">{formatTime(plan.modified)}</span>
               </button>

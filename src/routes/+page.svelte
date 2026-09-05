@@ -15,6 +15,7 @@
     saveFile,
   } from "$lib/tauri/files";
   import { showToast } from "$lib/stores/toast";
+  import { basename } from "$lib/utils/path";
   import { settings, getContentMaxWidth } from "$lib/stores/settings";
   import { startFileWatcher } from "$lib/tauri/watcher";
   import { themeMode, cycleTheme } from "$lib/stores/theme";
@@ -283,7 +284,7 @@
         const saved = await saveAsNewDocument(tab.id, tab.editContent);
         if (!saved) return; // cancelled — keep editing, stays dirty
         targetPath = saved;
-        targetName = saved.split("/").pop() ?? saved;
+        targetName = basename(saved);
       } else {
         await saveFile(tab.filePath, tab.editContent);
       }
@@ -344,7 +345,7 @@
     if (!target) return;
 
     const resolved = resolveLocalPath(target, getBaseDir(tab.filePath));
-    const name = resolved.split(/[\\/]/).pop() || resolved;
+    const name = basename(resolved);
 
     if (!(await pathExists(resolved))) {
       showToast(`Can't find “${name}”`);

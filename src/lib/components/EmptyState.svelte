@@ -6,6 +6,7 @@
   import { pinnedFolders } from "../stores/pinned";
   import { settings } from "../stores/settings";
   import UpdateBanner from "./UpdateBanner.svelte";
+  import { basename, shortenHomePath } from "$lib/utils/path";
   import brandLogo from "$lib/assets/mdhero-icon.png";
 
   let { onOpenUrl = () => {} }: { onOpenUrl?: () => void } = $props();
@@ -73,9 +74,6 @@
     folderFiles = rest;
   }
 
-  function getFolderName(path: string): string {
-    return path.split("/").pop() || path;
-  }
 
   function formatTime(ts: number): string {
     const diff = Date.now() - ts;
@@ -89,15 +87,6 @@
     return new Date(ts).toLocaleDateString();
   }
 
-  function shortenPath(path: string): string {
-    const home = "/Users/";
-    if (path.startsWith(home)) {
-      const rest = path.slice(home.length);
-      const parts = rest.split("/");
-      if (parts.length > 1) return "~/" + parts.slice(1).join("/");
-    }
-    return path;
-  }
 
   function formatPlanName(name: string): string {
     return name.replace(/\.md$/, "").replace(/[-_]/g, " ");
@@ -168,7 +157,7 @@
       <div class="card card-scroll uniform-card">
         <div class="recents-grid" class:two-col={twoCol}>
           {#each $recentFiles as file (file.path)}
-            {@render fileRow(file.name, shortenPath(file.path), formatTime(file.openedAt), () => openFile(file.path), 'file')}
+            {@render fileRow(file.name, shortenHomePath(file.path), formatTime(file.openedAt), () => openFile(file.path), 'file')}
           {/each}
         </div>
       </div>
@@ -200,7 +189,7 @@
           </div>
           <div class="card card-scroll uniform-card">
             {#each plans as plan (plan.path)}
-              {@render fileRow(formatPlanName(plan.name), shortenPath(plan.path), formatTime(plan.modified), () => openFile(plan.path), 'plan')}
+              {@render fileRow(formatPlanName(plan.name), shortenHomePath(plan.path), formatTime(plan.modified), () => openFile(plan.path), 'plan')}
             {/each}
           </div>
         </div>
@@ -211,7 +200,7 @@
           <div class="section-header">
             <h2 class="section-title">
               <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 4.5l3-2.5h8v9H1.5V4.5z"/><line x1="1.5" y1="4.5" x2="4.5" y2="4.5"/></svg>
-              {getFolderName(folder)}
+              {basename(folder)}
             </h2>
             <span class="section-count">{folderFiles[folder]?.length ?? '...'}</span>
             <button class="section-action unpin" onclick={(e) => removePinnedFolder(e, folder)} title="Unpin">
