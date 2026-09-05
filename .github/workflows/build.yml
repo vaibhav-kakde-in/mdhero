@@ -12,6 +12,78 @@ permissions:
   contents: write
 
 jobs:
+  # The repo ships unit tests (slides, text-search, watcher, rtl-direction and
+  # the hljs dark-theme coverage guard) but nothing ran them, so a regression in
+  # any of them reached main unnoticed.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install
+
+      - name: Unit tests
+        run: pnpm test
+
+      # Advisory: svelte-check has never run in CI, so its current baseline is
+      # unknown. Drop continue-on-error once it reports clean.
+      - name: Type check
+        run: pnpm check
+        continue-on-error: true
+
+  # `tauri build` never compiles #[cfg(test)] code, so Rust tests would be
+  # carried along without ever being built. Separate job because it needs the
+  # Linux GUI dependencies and a frontend build.
+  rust-test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      # tauri-build validates that frontendDist (../build) exists, so the
+      # frontend has to be built before cargo touches the crate.
+      - name: Build frontend
+        run: pnpm install && pnpm build
+
+      - name: Rust unit tests
+        working-directory: src-tauri
+        run: cargo test
+
   build:
     strategy:
       fail-fast: false
