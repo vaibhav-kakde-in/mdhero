@@ -5,7 +5,7 @@
   <img alt="MDHero" src=".github/assets/banner-light.png" width="100%">
 </picture>
 <br>
-A beautiful, native Markdown viewer and lightweight editor for macOS and Windows. ~8MB. Free. Open source.
+A beautiful, native Markdown viewer and lightweight editor for macOS, Windows and Linux. ~8MB. Free. Open source.
 <br><br>
 
 [![GitHub Stars](https://img.shields.io/github/stars/vaibhav-kakde-in/mdhero?style=flat-square)](https://github.com/vaibhav-kakde-in/mdhero/stargazers)
@@ -13,6 +13,7 @@ A beautiful, native Markdown viewer and lightweight editor for macOS and Windows
 [![License](https://img.shields.io/github/license/vaibhav-kakde-in/mdhero?style=flat-square)](LICENSE)
 ![macOS](https://img.shields.io/badge/macOS-supported-blue?style=flat-square&logo=apple)
 ![Windows](https://img.shields.io/badge/Windows-supported-blue?style=flat-square&logo=windows)
+![Linux](https://img.shields.io/badge/Linux-supported-blue?style=flat-square&logo=linux)
 [![Built with Tauri](https://img.shields.io/badge/Built_with-Tauri-FFC131?style=flat-square&logo=tauri)](https://tauri.app)
 
 [Download](https://github.com/vaibhav-kakde-in/mdhero/releases/latest) · [Website](https://mdhero.app) · [Discussions](https://github.com/vaibhav-kakde-in/mdhero/discussions)
