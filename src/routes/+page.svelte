@@ -668,6 +668,7 @@
     // Safety net: if focus leaves while j/k is held, keyup may never fire — stop the loop.
     window.addEventListener("blur", stopScroll);
     window.addEventListener("scroll", handleScrollForProgress, { passive: true });
+    window.addEventListener("wheel", handleWheel, { passive: false });
     window.addEventListener("beforeunload", saveProgressNow);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
@@ -715,6 +716,7 @@
       window.removeEventListener("blur", stopScroll);
       stopScroll();
       window.removeEventListener("scroll", handleScrollForProgress);
+      window.removeEventListener("wheel", handleWheel);
       window.removeEventListener("beforeunload", saveProgressNow);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
@@ -788,6 +790,16 @@
 
     updateScrollDirection();
     if (scrollDir === 0) stopScroll();
+  }
+
+  /** Ctrl/Cmd+wheel zoom — same font-size adjustment as Cmd+Plus/Minus, just
+   * driven by the mouse wheel instead of the keyboard. `preventDefault` stops
+   * the browser's own page-zoom/scroll on the ctrl+wheel gesture. */
+  function handleWheel(e: WheelEvent) {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 1 : -1;
+    settings.update((s) => ({ ...s, fontSize: Math.min(32, Math.max(10, s.fontSize + delta)) }));
   }
 
   function isInputFocused(): boolean {
@@ -889,6 +901,23 @@
     if ((e.metaKey || e.ctrlKey) && e.key === "0") {
       e.preventDefault();
       settings.update((s) => ({ ...s, fontSize: 17 }));
+      return;
+    }
+
+    // Cmd+A select-all — scoped to the rendered document, not the whole app
+    // chrome (toolbar, tab bar...). Left to the browser default (which would
+    // select the entire page, menus included) inside inputs/editor, where a
+    // normal text-field select-all is exactly what's wanted.
+    if ((e.metaKey || e.ctrlKey) && e.key === "a" && !isInputFocused() && !activeTab?.isEditing) {
+      const target = document.querySelector("article.prose, pre.raw-source");
+      if (target) {
+        e.preventDefault();
+        const range = document.createRange();
+        range.selectNodeContents(target);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      }
       return;
     }
 
