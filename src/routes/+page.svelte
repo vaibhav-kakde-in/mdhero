@@ -94,6 +94,7 @@
 
   function handleScrollForProgress() {
     if (isRestoring) return;
+    if (!$settings.rememberReadingPosition) return;
     const tab = tabStore.getActiveTab();
     if (!tab || tab.isEditing) return;
     if (tab.filePath.startsWith("paste://")) return;
@@ -103,18 +104,21 @@
       // Tiny-file edge case: skip save if document fits in viewport
       if (document.documentElement.scrollHeight <= window.innerHeight) return;
       const line = getCurrentSourceLine("viewer");
+      if (line < 0) return; // viewport collapsed (e.g. window minimized) — don't clobber saved progress
       saveProgress(tab.filePath, line);
     }, 500);
   }
 
   function saveProgressNow() {
     clearTimeout(scrollSaveTimer);
+    if (!$settings.rememberReadingPosition) return;
     const tab = tabStore.getActiveTab();
     if (!tab || tab.isEditing) return;
     if (tab.filePath.startsWith("paste://")) return;
     // Tiny-file edge case: skip save if document fits in viewport
     if (document.documentElement.scrollHeight <= window.innerHeight) return;
     const line = getCurrentSourceLine("viewer");
+    if (line < 0) return; // viewport collapsed (e.g. window minimized) — don't clobber saved progress
     saveProgress(tab.filePath, line);
   }
 
@@ -1113,7 +1117,7 @@
         window.scrollTo(0, savedScroll);
         // Restore reading progress (smooth-scroll to saved source line)
         // Only if the tab is at scroll 0 (freshly opened or re-opened)
-        if (savedScroll === 0) {
+        if (savedScroll === 0 && $settings.rememberReadingPosition) {
           restoreProgress(tab.filePath);
         }
       });

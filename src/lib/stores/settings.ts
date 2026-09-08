@@ -12,6 +12,8 @@ export interface ReaderSettings {
   autoPresentMarp: boolean;
   /** Reopen the files that were open when the app last ran (#72). */
   restoreTabsOnLaunch: boolean;
+  /** Restore the last scroll position when reopening a previously viewed file. */
+  rememberReadingPosition: boolean;
 }
 
 const STORAGE_KEY = "mdhero-settings";
@@ -38,6 +40,7 @@ function loadSettings(): ReaderSettings {
     showLineNumbers: true,
     autoPresentMarp: true,
     restoreTabsOnLaunch: true,
+    rememberReadingPosition: true,
   };
 
   if (typeof localStorage === "undefined") return defaults;

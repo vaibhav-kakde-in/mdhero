@@ -17,8 +17,19 @@ export type ViewMode = "viewer" | "raw" | "editor";
 
 const TOOLBAR_TABBAR_HEIGHT = 80; // approximate sticky chrome at top
 
-/** Read the source line currently anchored at the top of the viewport. */
+/**
+ * Read the source line currently anchored at the top of the viewport, or -1
+ * if that can't be measured right now.
+ *
+ * A collapsed viewport (window minimized, or hidden right as the OS tears
+ * down layout) makes every `getBoundingClientRect()` in `readViewerLine`
+ * report a zero-size rect. That was being misread as "scrolled past the
+ * last element" and saved as the reading-progress line — so minimizing the
+ * window while reading, then reopening the file later, jumped straight to
+ * the end regardless of where the user actually was. Bail out instead.
+ */
 export function getCurrentSourceLine(mode: ViewMode): number {
+  if (window.innerWidth === 0 || window.innerHeight === 0) return -1;
   if (mode === "viewer") return readViewerLine();
   if (mode === "raw") return readRawLine();
   return readEditorLine();
