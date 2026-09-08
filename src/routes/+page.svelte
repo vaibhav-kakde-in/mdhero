@@ -181,6 +181,14 @@
     activeTab?.isEditing ? (splitMode ? "split" : "edit") : "view"
   );
 
+  // Publish the ToC width (#108) as a CSS variable so the fixed sidebar and the
+  // document's left padding always agree on one number. It lives here rather
+  // than in TableOfContents because that component unmounts in zen and edit
+  // modes, which would leave the variable stale for anything still reading it.
+  $effect(() => {
+    document.documentElement.style.setProperty("--toc-w", `${$settings.tocWidth}px`);
+  });
+
   // Live-render the editor content into the split preview pane, debounced so
   // fast typing stays smooth. ponytail: full re-render per debounce tick; fine
   // for typical docs — add incremental rendering only if a huge file lags.
@@ -1311,7 +1319,19 @@
   }
 
   .content-main.toc-spaced {
-    padding-left: 240px;
+    padding-left: var(--toc-w, 240px);
+  }
+
+  /* While the ToC edge is being dragged, drop the padding transition so the
+     document tracks the pointer instead of easing a frame behind it, and stop
+     the drag from selecting text as it sweeps across the page. */
+  :global(html.toc-resizing) {
+    cursor: col-resize;
+    user-select: none;
+  }
+
+  :global(html.toc-resizing) .content-main {
+    transition: none;
   }
 
   .raw-source {
