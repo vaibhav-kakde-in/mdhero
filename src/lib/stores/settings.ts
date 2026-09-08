@@ -18,7 +18,10 @@ const STORAGE_KEY = "mdhero-settings";
 const DEFAULT_MAX_WIDTH = 720;
 const MIN_MAX_WIDTH = 560;
 const MAX_MAX_WIDTH = 3840;
-const WIDE_MAX_WIDTH = "min(3840px, calc(100vw - clamp(48px, 8vw, 128px)))";
+// The article itself already carries 32px of side padding (Tailwind `px-8`
+// in MarkdownRenderer.svelte) for breathing room against its own edge — this
+// only needs to hand it the full available width, not subtract more on top.
+const WIDE_MAX_WIDTH = "100%";
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
