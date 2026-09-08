@@ -3,6 +3,7 @@ import DOMPurify from "dompurify";
 import taskLists from "markdown-it-task-lists";
 import anchor from "markdown-it-anchor";
 import texmath from "markdown-it-texmath";
+import mark from "markdown-it-mark";
 import katex from "katex";
 import hljs from "highlight.js/lib/core";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -233,6 +234,7 @@ export async function initRenderer(): Promise<void> {
     delimiters: "dollars",
   });
 
+  md.use(mark);
   md.use(taskLists, { enabled: false, label: true });
   md.use(anchor, {
     permalink: false,
@@ -273,6 +275,7 @@ export function renderFull(markdown: string, baseDir?: string): RenderResult {
     },
   });
     md.use(texmath, { engine: katex, delimiters: "dollars" });
+    md.use(mark);
     md.use(taskLists, { enabled: false, label: true });
     md.use(anchor, {
       permalink: false,
