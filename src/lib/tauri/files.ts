@@ -213,7 +213,12 @@ export async function pathExists(path: string): Promise<boolean> {
   return invoke<boolean>("path_exists", { path });
 }
 
-/** Open a non-markdown local file in the OS default app (#30). */
+/**
+ * Open a supported document/image in the OS default app (#30).
+ *
+ * The capability allowlist is the backend guard; the caller also rejects
+ * executable/script extensions before reaching this function.
+ */
 export async function openWithSystem(path: string): Promise<void> {
   const { openPath } = await import("@tauri-apps/plugin-opener");
   await openPath(path);

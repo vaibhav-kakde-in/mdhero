@@ -398,7 +398,8 @@
 
     // Security: never hand executable/script types to the OS opener. A clicked
     // link with deceptive text could otherwise launch a pre-existing payload in
-    // one click. Everything else (PDF, images, docs…) opens in the default app.
+    // one click. The capability independently permits only PDFs and common
+    // raster images; keep this denylist as defense-in-depth.
     if (isExecutablePath(resolved)) {
       showToast(`Won't open executable file “${name}”. Open it from your file manager if you trust it.`);
       return;

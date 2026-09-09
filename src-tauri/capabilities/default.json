@@ -8,7 +8,17 @@
     "opener:default",
     {
       "identifier": "opener:allow-open-path",
-      "allow": [{ "path": "**" }]
+      "allow": [
+        { "path": "**/*.pdf" },
+        { "path": "**/*.png" },
+        { "path": "**/*.jpg" },
+        { "path": "**/*.jpeg" },
+        { "path": "**/*.gif" },
+        { "path": "**/*.webp" },
+        { "path": "**/*.bmp" },
+        { "path": "**/*.tif" },
+        { "path": "**/*.tiff" }
+      ]
     },
     "dialog:default",
     "dialog:allow-ask",
