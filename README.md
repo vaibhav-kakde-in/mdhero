@@ -124,6 +124,22 @@ Distraction-free full-screen reading. Just you and the document.
 
 Or build from source (see below).
 
+### Code signing
+
+macOS builds are signed with an Apple Developer ID and notarised by Apple.
+
+Windows builds are **not yet code-signed**. Windows SmartScreen may therefore warn that
+the publisher is unrecognised, and Microsoft Defender's machine-learning heuristics have
+flagged the installer as `Trojan:Win32/Wacatac.B!ml`. That detection is a false positive:
+the `!ml` suffix denotes a heuristic classifier rather than a match against known
+malware, and it fires on installers that are unsigned and have little download history.
+Every release is built in public by [GitHub Actions](.github/workflows/build.yml) from
+the source in this repository.
+
+MDHero has applied to the [SignPath Foundation](https://signpath.org/), which provides
+free code signing to open source projects. Once approved, Windows installers will be
+signed via the SignPath Foundation and these warnings will stop.
+
 ---
 
 ## Keyboard Shortcuts

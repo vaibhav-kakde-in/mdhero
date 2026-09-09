@@ -220,6 +220,10 @@ jobs:
             - **macOS** (Apple Silicon): Download the `.dmg` file
             - **Windows** (x64 or ARM64): Download the `.msi` installer or `-setup.exe` (NSIS) — pick the `x64` or `arm64` file for your machine
             - **Linux** (x64 or arm64): Download the `.deb` (Debian/Ubuntu), `.rpm` (Fedora/openSUSE) or `.AppImage` (any distro) — `amd64`/`x86_64` or `arm64`/`aarch64`
+
+            ## Code signing
+            macOS builds are signed with an Apple Developer ID and notarised by Apple. Windows builds are **not yet code-signed**, so SmartScreen may warn that the publisher is unrecognised and Microsoft Defender's machine-learning heuristics may flag the installer as `Trojan:Win32/Wacatac.B!ml` — a false positive that fires on unsigned installers with little download history. Every release is built in public by GitHub Actions from the source in this repository.
+            MDHero has applied to the [SignPath Foundation](https://signpath.org/), which provides free code signing to open source projects. Once approved, Windows installers will be signed via the SignPath Foundation.
           releaseDraft: false
           prerelease: false
 

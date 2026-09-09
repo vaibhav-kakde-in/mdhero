@@ -50,6 +50,12 @@
     ],
     "macOS": {
       "signingIdentity": null
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper",
+        "silent": true
+      }
     }
   },
   "plugins": {
