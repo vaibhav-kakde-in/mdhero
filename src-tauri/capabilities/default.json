@@ -10,6 +10,7 @@
       "identifier": "opener:allow-open-path",
       "allow": [
         { "path": "**/*.pdf" },
+        { "path": "**/*.txt" },
         { "path": "**/*.png" },
         { "path": "**/*.jpg" },
         { "path": "**/*.jpeg" },
@@ -17,7 +18,10 @@
         { "path": "**/*.webp" },
         { "path": "**/*.bmp" },
         { "path": "**/*.tif" },
-        { "path": "**/*.tiff" }
+        { "path": "**/*.tiff" },
+        { "path": "**/*.heic" },
+        { "path": "**/*.avif" },
+        { "path": "**/*.mp4" }
       ]
     },
     "dialog:default",

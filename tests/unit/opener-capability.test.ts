@@ -20,8 +20,8 @@ describe("opener capability", () => {
     );
     const paths = permission?.allow?.map((entry) => entry.path) ?? [];
 
-    expect(paths).toHaveLength(9);
+    expect(paths).toHaveLength(13);
     expect(paths).not.toContain("**");
-    expect(paths.every((path) => /^\*\*\/\*\.(pdf|png|jpe?g|gif|webp|bmp|tiff?)$/.test(path))).toBe(true);
+    expect(paths.every((path) => /^\*\*\/\*\.(pdf|txt|png|jpe?g|gif|webp|bmp|tiff?|heic|avif|mp4)$/.test(path))).toBe(true);
   });
 });
