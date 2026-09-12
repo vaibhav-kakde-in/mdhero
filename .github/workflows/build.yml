@@ -184,6 +184,17 @@ jobs:
             echo "APPLE_TEAM_ID=$APPLE_TEAM_ID"
           } >> $GITHUB_ENV
 
+      # Must run BEFORE tauri-action. Tauri copies the finished .appex into the
+      # app bundle and seals it inside the app's signature, but it does NOT sign
+      # what it copies — custom files are added after the bundler has collected
+      # its signing targets. An unsigned nested extension fails
+      # `codesign --verify --deep` and notarization, so it is signed here first.
+      - name: Build the Quick Look extension
+        if: matrix.platform == 'macos-latest'
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ github.event_name == 'pull_request' && '-' || secrets.APPLE_SIGNING_IDENTITY }}
+        run: ./quicklook/build-appex.sh
+
       - name: Build
         uses: tauri-apps/tauri-action@v0
         env:
@@ -210,7 +221,16 @@ jobs:
           # bundle.createUpdaterArtifacts (signed .tar.gz/.sig + latest.json).
           # Kept out of the base config so PR builds don't try to sign updater
           # artifacts without a key.
-          args: ${{ github.event_name != 'pull_request' && '--config src-tauri/tauri.release.conf.json' || '' }}
+          # Two overlays, both conditional:
+          #   release   — turns on signed updater artifacts (non-PR only)
+          #   quicklook — embeds MDHeroQuickLook.appex at Contents/PlugIns
+          # The quicklook overlay is kept out of the base config so that a plain
+          # `pnpm tauri build` on a machine that has not built the extension
+          # still works; the bundler errors if a file in bundle.macOS.files is
+          # missing.
+          args: >-
+            ${{ github.event_name != 'pull_request' && '--config src-tauri/tauri.release.conf.json' || '' }}
+            ${{ matrix.platform == 'macos-latest' && '--config src-tauri/tauri.quicklook.conf.json' || '' }}
           tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
           releaseName: ${{ startsWith(github.ref, 'refs/tags/') && format('MDHero {0}', github.ref_name) || '' }}
           releaseBody: |

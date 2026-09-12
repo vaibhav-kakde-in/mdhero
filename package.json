@@ -10,7 +10,9 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test": "svelte-kit sync && vitest run",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "quicklook": "node scripts/build-quicklook.mjs",
+    "quicklook:appex": "./quicklook/build-appex.sh"
   },
   "license": "MIT",
   "dependencies": {

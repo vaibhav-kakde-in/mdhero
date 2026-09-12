@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Mandatory. macOS refuses to load an unsandboxed Quick Look extension at
+       all: signed without this, the extension never launches and no process
+       appears. Verified 2026-09-12. -->
+  <key>com.apple.security.app-sandbox</key>
+  <true/>
+
+  <!-- Read access to the file the Quick Look host hands us. The sandbox grants
+       that one file and nothing beside it, which is why relative images in a
+       document cannot be resolved here. -->
+  <key>com.apple.security.files.user-selected.read-only</key>
+  <true/>
+
+  <!-- Required for WKWebView to load AT ALL inside a sandboxed extension.
+       Without it navigation never completes and the preview is silently blank;
+       the kernel logs `deny file-read-data .../com.apple.networkd.plist` and
+       `deny mach-lookup com.apple.webprivacyd`. Nothing is actually fetched:
+       preview.html is fully self-contained and its CSP sets connect-src 'none'. -->
+  <key>com.apple.security.network.client</key>
+  <true/>
+</dict>
+</plist>
