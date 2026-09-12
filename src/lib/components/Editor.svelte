@@ -2,6 +2,7 @@
   import { onMount, onDestroy, tick } from "svelte";
   import { searchQuery, searchActiveIndex, searchTotal } from "$lib/stores/search";
   import { findMatches, buildHighlightHtml } from "$lib/utils/text-search";
+  import { gutterHtml as buildGutterHtml, gutterWidth as buildGutterWidth, lineCount as countLines } from "$lib/utils/line-gutter";
 
   let {
     value,
@@ -42,28 +43,10 @@
   // line's block has the same height as in the textarea and its number — a CSS
   // counter on the block — lines up with the block's top, even when the line
   // soft-wraps to several rows (continuation rows get no number, like a
-  // wrapping code editor). No JS height measuring needed.
-  const escapeHtml = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const lineCount = $derived(localValue.split("\n").length);
-  // Width the digits need; monospace so `ch` is exact. Min 2 digits + a gap.
-  const gutterWidth = $derived(`calc(${Math.max(2, String(lineCount).length)}ch + 16px)`);
-  // ponytail: rebuilds all line blocks on each caret move (for the active-line
-  // class). O(lines) per keystroke — fine for typical docs; switch to a single
-  // positioned highlight bar if it ever lags on very large files.
-  const gutterHtml = $derived(
-    showLineNumbers
-      ? localValue
-          // Empty lines would collapse to zero height and desync the count, so
-          // give them a zero-width space to reserve exactly one line box.
-          .split("\n")
-          .map(
-            (l, i) =>
-              `<div class="gl${i === activeLine ? " active" : ""}">${escapeHtml(l) || "​"}</div>`
-          )
-          .join("")
-      : ""
-  );
+  // wrapping code editor). No JS height measuring needed. The raw view (#110)
+  // shares the same helpers.
+  const lineCount = $derived(countLines(localValue));
+  const gutterWidth = $derived(buildGutterWidth(lineCount));
 
   // --- Find-in-editor highlight backdrop --------------------------------------
   // mark.js can't highlight a <textarea> (its contents aren't markable DOM text),
@@ -131,6 +114,11 @@
   // Which logical line the caret is on, for the current-line highlight. Read
   // from selectionStart on every caret move (input, click, arrow keys, focus).
   let activeLine = $state(0);
+
+  // Rebuilt on each caret move so the active line can be marked. O(lines) per
+  // keystroke — fine for typical docs; switch to a single positioned highlight
+  // bar if it ever lags on very large files.
+  const gutterHtml = $derived(showLineNumbers ? buildGutterHtml(localValue, activeLine) : "");
   function updateActiveLine() {
     if (!textareaEl) return;
     activeLine = localValue.slice(0, textareaEl.selectionStart).split("\n").length - 1;
