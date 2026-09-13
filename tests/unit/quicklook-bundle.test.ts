@@ -189,3 +189,49 @@ describe("the generated page's security policy", () => {
     expect(script).toMatch(/__MDHERO_BOOT__/);
   });
 });
+
+/**
+ * Source-level guards for the native shell. These properties are security
+ * relevant, cheap to delete by accident, and covered by nothing else — the
+ * Swift has no test target, and the failures they prevent are all silent.
+ */
+describe("the extension's native shell", () => {
+  const swift = read("quicklook/Preview.swift");
+  const buildScript = read("quicklook/build-appex.sh");
+
+  it("refuses any navigation except the document it loads itself", () => {
+    // No CSP directive stops a link click, and DOMPurify rightly leaves https:
+    // links in the document. Following one would beacon out of a process that
+    // holds com.apple.security.network.client.
+    expect(swift).toMatch(/decidePolicyFor navigationAction/);
+    expect(swift).toMatch(/decisionHandler\(\.cancel\)/);
+    expect(swift).toMatch(/expectingInitialLoad/);
+  });
+
+  it("fails closed if the CSP nonce cannot be generated", () => {
+    // A discarded SecRandomCopyBytes status leaves 16 zero bytes, making the
+    // nonce predictable — which is the only property it has.
+    expect(swift).toMatch(/errSecSuccess/);
+    expect(swift).not.toMatch(/_ = bytes\.withUnsafeMutableBytes/);
+  });
+
+  it("escapes document text so it cannot close the script element", () => {
+    expect(swift).toMatch(/JSONSerialization/);
+    expect(swift).toMatch(/u003C/);
+  });
+
+  it("does not echo the signing identity", () => {
+    // Comment lines are stripped first: the script explains *why* it does not
+    // echo $IDENTITY, and prose about the rule must not trip the rule.
+    const commands = buildScript
+      .split("\n")
+      .filter((line) => !line.trim().startsWith("#"))
+      .join("\n");
+    expect(commands).not.toMatch(/echo[^\n]*\$IDENTITY/);
+  });
+
+  it("stamps the bundle version without a fragile sed expression", () => {
+    expect(buildScript).not.toMatch(/sed[^\n]*__VERSION__/);
+    expect(buildScript).toMatch(/PlistBuddy/);
+  });
+});
