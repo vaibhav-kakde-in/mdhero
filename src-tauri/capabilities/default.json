@@ -8,7 +8,21 @@
     "opener:default",
     {
       "identifier": "opener:allow-open-path",
-      "allow": [{ "path": "**" }]
+      "allow": [
+        { "path": "**/*.pdf" },
+        { "path": "**/*.txt" },
+        { "path": "**/*.png" },
+        { "path": "**/*.jpg" },
+        { "path": "**/*.jpeg" },
+        { "path": "**/*.gif" },
+        { "path": "**/*.webp" },
+        { "path": "**/*.bmp" },
+        { "path": "**/*.tif" },
+        { "path": "**/*.tiff" },
+        { "path": "**/*.heic" },
+        { "path": "**/*.avif" },
+        { "path": "**/*.mp4" }
+      ]
     },
     "dialog:default",
     "dialog:allow-ask",
