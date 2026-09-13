@@ -39,8 +39,8 @@ html.dark {
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 15px;
+  height: 15px;
 }
 
 ::-webkit-scrollbar-track {

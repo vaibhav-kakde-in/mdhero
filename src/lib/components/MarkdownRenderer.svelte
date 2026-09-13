@@ -442,6 +442,19 @@
     color: #aeaeb2;
   }
 
+  /* Highlight (==text==, markdown-it-mark) */
+  article :global(mark) {
+    background: #FEF08A;
+    color: #1c1c1e;
+    padding: 0.05em 0.2em;
+    border-radius: 3px;
+  }
+
+  :global(html.dark) article :global(mark) {
+    background: #A16207;
+    color: #FEF9C3;
+  }
+
   /* Blockquotes */
   article :global(blockquote) {
     border-left: 3px solid #0891B2;

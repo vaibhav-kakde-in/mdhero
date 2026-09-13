@@ -70,6 +70,19 @@
               class="setting-switch"
             />
           </label>
+
+          <label class="setting-row">
+            <div class="setting-text">
+              <span class="setting-label">Remember reading position</span>
+              <span class="setting-hint">Reopening a previously viewed file scrolls back to where you left off.</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={$settings.rememberReadingPosition}
+              onchange={(e) => settings.update((s) => ({ ...s, rememberReadingPosition: e.currentTarget.checked }))}
+              class="setting-switch"
+            />
+          </label>
         </section>
 
         <section class="settings-section">

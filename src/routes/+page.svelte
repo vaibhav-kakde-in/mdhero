@@ -94,6 +94,7 @@
 
   function handleScrollForProgress() {
     if (isRestoring) return;
+    if (!$settings.rememberReadingPosition) return;
     const tab = tabStore.getActiveTab();
     if (!tab || tab.isEditing) return;
     if (tab.filePath.startsWith("paste://")) return;
@@ -103,18 +104,21 @@
       // Tiny-file edge case: skip save if document fits in viewport
       if (document.documentElement.scrollHeight <= window.innerHeight) return;
       const line = getCurrentSourceLine("viewer");
+      if (line < 0) return; // viewport collapsed (e.g. window minimized) — don't clobber saved progress
       saveProgress(tab.filePath, line);
     }, 500);
   }
 
   function saveProgressNow() {
     clearTimeout(scrollSaveTimer);
+    if (!$settings.rememberReadingPosition) return;
     const tab = tabStore.getActiveTab();
     if (!tab || tab.isEditing) return;
     if (tab.filePath.startsWith("paste://")) return;
     // Tiny-file edge case: skip save if document fits in viewport
     if (document.documentElement.scrollHeight <= window.innerHeight) return;
     const line = getCurrentSourceLine("viewer");
+    if (line < 0) return; // viewport collapsed (e.g. window minimized) — don't clobber saved progress
     saveProgress(tab.filePath, line);
   }
 
@@ -664,6 +668,7 @@
     // Safety net: if focus leaves while j/k is held, keyup may never fire — stop the loop.
     window.addEventListener("blur", stopScroll);
     window.addEventListener("scroll", handleScrollForProgress, { passive: true });
+    window.addEventListener("wheel", handleWheel, { passive: false });
     window.addEventListener("beforeunload", saveProgressNow);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
@@ -711,6 +716,7 @@
       window.removeEventListener("blur", stopScroll);
       stopScroll();
       window.removeEventListener("scroll", handleScrollForProgress);
+      window.removeEventListener("wheel", handleWheel);
       window.removeEventListener("beforeunload", saveProgressNow);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
@@ -784,6 +790,16 @@
 
     updateScrollDirection();
     if (scrollDir === 0) stopScroll();
+  }
+
+  /** Ctrl/Cmd+wheel zoom — same font-size adjustment as Cmd+Plus/Minus, just
+   * driven by the mouse wheel instead of the keyboard. `preventDefault` stops
+   * the browser's own page-zoom/scroll on the ctrl+wheel gesture. */
+  function handleWheel(e: WheelEvent) {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 1 : -1;
+    settings.update((s) => ({ ...s, fontSize: Math.min(32, Math.max(10, s.fontSize + delta)) }));
   }
 
   function isInputFocused(): boolean {
@@ -885,6 +901,23 @@
     if ((e.metaKey || e.ctrlKey) && e.key === "0") {
       e.preventDefault();
       settings.update((s) => ({ ...s, fontSize: 17 }));
+      return;
+    }
+
+    // Cmd+A select-all — scoped to the rendered document, not the whole app
+    // chrome (toolbar, tab bar...). Left to the browser default (which would
+    // select the entire page, menus included) inside inputs/editor, where a
+    // normal text-field select-all is exactly what's wanted.
+    if ((e.metaKey || e.ctrlKey) && e.key === "a" && !isInputFocused() && !activeTab?.isEditing) {
+      const target = document.querySelector("article.prose, pre.raw-source");
+      if (target) {
+        e.preventDefault();
+        const range = document.createRange();
+        range.selectNodeContents(target);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+      }
       return;
     }
 
@@ -1113,7 +1146,7 @@
         window.scrollTo(0, savedScroll);
         // Restore reading progress (smooth-scroll to saved source line)
         // Only if the tab is at scroll 0 (freshly opened or re-opened)
-        if (savedScroll === 0) {
+        if (savedScroll === 0 && $settings.rememberReadingPosition) {
           restoreProgress(tab.filePath);
         }
       });
