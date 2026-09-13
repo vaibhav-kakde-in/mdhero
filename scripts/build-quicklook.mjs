@@ -152,6 +152,12 @@ function main() {
 const cssChars = extractComponentStyles();
 console.log(`extracted ${cssChars} chars of component CSS -> ${path.relative(ROOT, GENERATED)}`);
 
+// `tsconfig.json` extends `.svelte-kit/tsconfig.json`, which only exists after
+// svelte-kit has synced. The app's other scripts sync as a side effect of
+// `pnpm build` / `test` / `check`, but this build runs before any of them in CI,
+// so it syncs for itself rather than depending on what ran first.
+execFileSync("pnpm", ["exec", "svelte-kit", "sync"], { cwd: ROOT, stdio: "inherit" });
+
 execFileSync("pnpm", ["exec", "vite", "build", "--config", "vite.quicklook.config.ts"], {
   cwd: ROOT,
   stdio: "inherit",
