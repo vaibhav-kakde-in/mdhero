@@ -51,6 +51,7 @@
   import { checkForUpdates, updateAvailable, updateDismissed, checkInFlight } from "$lib/stores/updater";
   import { get } from "svelte/store";
   import { getCurrentSourceLine, scrollToSourceLine, type ViewMode } from "$lib/utils/scroll-sync";
+  import { gutterHtml, gutterWidth, lineCount } from "$lib/utils/line-gutter";
   import { saveProgress, getProgress } from "$lib/stores/readingProgress";
 
   let rendererReady = $state(false);
@@ -72,6 +73,12 @@
   let splitPreviewHtml = $state("");
   let splitPreviewTimer: ReturnType<typeof setTimeout> | undefined;
   let contentMaxWidth = $derived(getContentMaxWidth($settings));
+
+  // Raw-view line numbers (#110). Same gutter treatment as the editor, driven by
+  // the same `showLineNumbers` setting so the two views agree.
+  let rawGutterOn = $derived($settings.showLineNumbers);
+  let rawGutterWidth = $derived(gutterWidth(lineCount($docStore.content)));
+  let rawGutterHtml = $derived(rawGutterOn ? gutterHtml($docStore.content) : "");
 
   // Lightbox state
   let lightboxVisible = $state(false);
@@ -1213,10 +1220,28 @@
       />
     {:else if rawMode}
       <main class="content-main" class:toc-spaced={$tocVisible && $tocEntries.length > 0}>
-        <pre
-          class="raw-source"
-          style="font-size: {$settings.fontSize}px; line-height: {$settings.lineHeight}; max-width: {contentMaxWidth};"
-        ><code>{$docStore.content}</code></pre>
+        <div
+          class="raw-stack"
+          class:with-gutter={rawGutterOn}
+          style="max-width: {contentMaxWidth}; --gutter-w: {rawGutterWidth};"
+        >
+          {#if rawGutterOn}
+            <!-- Transparent mirror wrapping identically to the <pre>; CSS
+                 counters on each line block draw the numbers. Kept out of the
+                 <pre> so `scroll-sync` still reads the source from its
+                 textContent. -->
+            <div
+              class="raw-gutter"
+              aria-hidden="true"
+              style="font-size: {$settings.fontSize}px; line-height: {$settings.lineHeight};"
+            >{@html rawGutterHtml}</div>
+          {/if}
+          <pre
+            class="raw-source"
+            class:with-gutter={rawGutterOn}
+            style="font-size: {$settings.fontSize}px; line-height: {$settings.lineHeight};"
+          ><code>{$docStore.content}</code></pre>
+        </div>
       </main>
     {:else}
       <main class="content-main" class:toc-spaced={$tocVisible && $tocEntries.length > 0}>
@@ -1314,8 +1339,13 @@
     padding-left: 240px;
   }
 
-  .raw-source {
+  .raw-stack {
+    position: relative;
     margin: 0 auto;
+  }
+
+  .raw-source {
+    margin: 0;
     padding: 24px 32px;
     font-family: "SF Mono", "JetBrains Mono", Menlo, monospace;
     color: #1c1c1e;
@@ -1327,5 +1357,66 @@
 
   :global(html.dark) .raw-source {
     color: #d1d1d6;
+  }
+
+  /* Line-number gutter (#110). The <pre> gains left padding to open the column;
+     `measureLineOffsets` reads that padding off the element, so line-anchored
+     scroll sync follows the narrower text automatically. */
+  .raw-source.with-gutter {
+    padding-left: calc(32px + var(--gutter-w));
+  }
+
+  /* Mirror of the <pre>: identical box, font and wrapping, transparent text.
+     Only the CSS counters on each line block are visible. */
+  .raw-gutter {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 24px 32px 24px calc(32px + var(--gutter-w));
+    font-family: "SF Mono", "JetBrains Mono", Menlo, monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    box-sizing: border-box;
+    color: transparent;
+    pointer-events: none;
+    user-select: none;
+    overflow: hidden;
+    counter-reset: gl;
+  }
+
+  .raw-gutter :global(.gl) {
+    counter-increment: gl;
+    position: relative;
+  }
+
+  .raw-gutter :global(.gl)::before {
+    content: counter(gl);
+    position: absolute;
+    left: calc(-1 * var(--gutter-w));
+    width: calc(var(--gutter-w) - 8px);
+    text-align: right;
+    color: #b0b0b5;
+  }
+
+  :global(html.dark) .raw-gutter :global(.gl)::before {
+    color: #5a5a5e;
+  }
+
+  /* Faint tint + hairline divider for the gutter column, matching the editor. */
+  .raw-stack.with-gutter::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 32px;
+    width: var(--gutter-w);
+    background: rgba(0, 0, 0, 0.02);
+    border-right: 1px solid rgba(0, 0, 0, 0.06);
+    pointer-events: none;
+  }
+
+  :global(html.dark) .raw-stack.with-gutter::before {
+    background: rgba(255, 255, 255, 0.025);
+    border-right-color: rgba(255, 255, 255, 0.08);
   }
 </style>
