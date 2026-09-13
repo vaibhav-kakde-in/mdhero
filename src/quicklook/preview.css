@@ -1,0 +1,29 @@
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+@import "highlight.js/styles/github.min.css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Generated from MarkdownRenderer.svelte's <style> block at build time by
+   scripts/build-quicklook.mjs — one source of truth for how a document looks,
+   so the Quick Look preview cannot drift away from the app's own rendering. */
+@import "./component-styles.generated.css";
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Helvetica, Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+html { background: #fafafa; color: #1c1c1e; }
+html.dark { background: #161618; color: #e5e5e7; }
+body { margin: 0; }
+
+/* Tailwind Typography's decorative quote glyphs around blockquotes, dropped for
+   the same reason as app.css: `>` is a callout as often as a quotation. */
+.prose blockquote p:first-of-type::before,
+.prose blockquote p:last-of-type::after { content: none; }
+
+.mermaid-diagram svg { max-width: 100%; height: auto; }

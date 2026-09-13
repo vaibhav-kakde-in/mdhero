@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>en</string>
+  <key>CFBundleExecutable</key>
+  <string>MDHeroQuickLook</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.mdhero.app.quicklook</string>
+  <key>CFBundleName</key>
+  <string>MDHeroQuickLook</string>
+  <key>CFBundleDisplayName</key>
+  <string>MDHero Markdown Preview</string>
+  <key>CFBundlePackageType</key>
+  <string>XPC!</string>
+  <key>CFBundleShortVersionString</key>
+  <string>__VERSION__</string>
+  <key>CFBundleVersion</key>
+  <string>__VERSION__</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>11.0</string>
+  <key>NSExtension</key>
+  <dict>
+    <key>NSExtensionPointIdentifier</key>
+    <string>com.apple.quicklook.preview</string>
+    <key>NSExtensionPrincipalClass</key>
+    <string>PreviewViewController</string>
+    <key>NSExtensionAttributes</key>
+    <dict>
+      <!-- The app already declares this UTI in src-tauri/Info.plist under
+           UTImportedTypeDeclarations, and macOS reports .md files as it. -->
+      <key>QLSupportedContentTypes</key>
+      <array>
+        <string>net.daringfireball.markdown</string>
+      </array>
+      <key>QLSupportsSearchableItems</key>
+      <false/>
+    </dict>
+  </dict>
+</dict>
+</plist>

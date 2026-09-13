@@ -19,3 +19,8 @@ FEATURES.md
 docs/
 .claude/
 CLAUDE.md
+
+# Quick Look extension build output
+build-quicklook/
+quicklook/build/
+src/quicklook/component-styles.generated.css
