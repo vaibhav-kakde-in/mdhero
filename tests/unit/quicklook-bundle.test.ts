@@ -97,6 +97,57 @@ describe("the Quick Look path reuses the app's renderer", () => {
     expect(preview).toMatch(/securityLevel:\s*"strict"/);
     expect(component).toMatch(/securityLevel:\s*"strict"/);
   });
+
+  /**
+   * The drift guard.
+   *
+   * The failure this prevents is silent and was days away from happening: a
+   * Mermaid hardening option gets added to the app and not to the preview.
+   * `htmlLabels: false` is the live example — DOMPurify >= 3.4 strips HTML out
+   * of <foreignObject>, where Mermaid puts node labels by default, so without
+   * that option every diagram renders as empty shapes. The app's fix
+   * (5a03430, on the dependency branch) touched MarkdownRenderer.svelte alone
+   * because it predates the Quick Look path.
+   *
+   * Nothing would have caught it: no test renders a diagram, so CI stays green
+   * and the first report comes from a user looking at blank boxes.
+   *
+   * The invariant asserted is a superset, not equality: the preview must carry
+   * every Mermaid security option the app carries. It may be ahead — it is
+   * today — but it must never be behind. Renders in Quick Look happen outside
+   * the app's CSP, so "at least as locked down" is the direction that matters.
+   */
+  const mermaidSecurityOptions = (src: string): string[] => {
+    const init = src.slice(src.indexOf("mermaid.initialize"));
+    const body = init.slice(0, init.indexOf("themeVariables"));
+    return [...body.matchAll(/(\w+):\s*(?:"([^"]*)"|(false|true))/g)]
+      .map((m) => `${m[1]}=${m[2] ?? m[3]}`)
+      .filter((opt) => !opt.startsWith("theme=") && !opt.startsWith("startOnLoad="))
+      .sort();
+  };
+
+  it("never lets the preview fall behind the app on Mermaid security options", () => {
+    const app = mermaidSecurityOptions(component);
+    const ql = mermaidSecurityOptions(preview);
+
+    expect(app.length, "parsed no options from MarkdownRenderer.svelte").toBeGreaterThan(0);
+    expect(ql.length, "parsed no options from preview.ts").toBeGreaterThan(0);
+
+    const missing = app.filter((opt) => !ql.includes(opt));
+    expect(
+      missing,
+      `Quick Look is missing Mermaid security options the app has: ${missing.join(", ")}. ` +
+        "Add them to src/quicklook/preview.ts — see CLAUDE.md invariant 1b.",
+    ).toEqual([]);
+  });
+
+  it("keeps Mermaid labels as SVG text in the preview", () => {
+    // Specifically guards the DOMPurify 3.4 interaction; all three spellings
+    // are needed because Mermaid reads them per-diagram-type.
+    expect(preview).toMatch(/htmlLabels:\s*false/);
+    expect(preview).toMatch(/flowchart:\s*\{\s*htmlLabels:\s*false\s*\}/);
+    expect(preview).toMatch(/class:\s*\{\s*htmlLabels:\s*false\s*\}/);
+  });
 });
 
 describe("the generated page's security policy", () => {

@@ -28,6 +28,21 @@ function initMermaid(isDark: boolean): void {
     // JS/URL bindings from untrusted diagram source. Do not relax this; see
     // CLAUDE.md's security invariants.
     securityLevel: "strict",
+    // #security: render labels as SVG <text>, never as HTML inside
+    // <foreignObject>. DOMPurify >= 3.4 strips HTML from foreignObject (it is
+    // a known XSS vector — the same class the Mermaid disclosure was about),
+    // which would otherwise leave every diagram with empty shapes. Keeping
+    // labels in pure SVG means there is no HTML inside the SVG to sanitize.
+    //
+    // This is here BEFORE the app itself carries it: the fix lives on
+    // `chore/deps-security-refresh-rebased` (5a03430) and touches only
+    // MarkdownRenderer.svelte, which predates this file. Landing it here now
+    // means the DOMPurify 3.4 bump cannot silently empty every diagram in the
+    // Quick Look preview. tests/unit/quicklook-bundle.test.ts enforces that the
+    // preview never falls behind the app on these options again.
+    htmlLabels: false,
+    flowchart: { htmlLabels: false },
+    class: { htmlLabels: false },
     themeVariables: isDark
       ? {
           primaryColor: "#0A1E2E",
