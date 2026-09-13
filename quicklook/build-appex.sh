@@ -42,11 +42,21 @@ lipo -create -output "$APPEX/Contents/MacOS/MDHeroQuickLook" \
 rm -f "$OUT/MDHeroQuickLook-arm64" "$OUT/MDHeroQuickLook-x86_64"
 
 echo "==> Assembling the bundle"
-sed "s/__VERSION__/$VERSION/g" "$ROOT/quicklook/Info.plist" > "$APPEX/Contents/Info.plist"
+# PlistBuddy rather than sed: the version comes from package.json, and a `/` in
+# it would corrupt a sed expression. This also fails loudly if a key is missing.
+cp "$ROOT/quicklook/Info.plist" "$APPEX/Contents/Info.plist"
+/usr/libexec/PlistBuddy \
+  -c "Set :CFBundleShortVersionString $VERSION" \
+  -c "Set :CFBundleVersion $VERSION" \
+  "$APPEX/Contents/Info.plist" > /dev/null
 cp "$ROOT/build-quicklook/preview.html" "$APPEX/Contents/Resources/preview.html"
 plutil -lint "$APPEX/Contents/Info.plist" > /dev/null
 
-echo "==> Signing with identity: $IDENTITY"
+# Deliberately does not echo $IDENTITY: it comes from a secret in CI. GitHub
+# would mask it, and the identity is recoverable from any shipped binary via
+# `codesign -dv` anyway — but echoing secret-sourced values is the habit that
+# leaks the day someone pipes one through base64.
+echo "==> Signing the extension"
 codesign --force --sign "$IDENTITY" \
   --options runtime \
   --entitlements "$ROOT/quicklook/MDHeroQuickLook.entitlements" \

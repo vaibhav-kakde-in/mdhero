@@ -97,6 +97,57 @@ describe("the Quick Look path reuses the app's renderer", () => {
     expect(preview).toMatch(/securityLevel:\s*"strict"/);
     expect(component).toMatch(/securityLevel:\s*"strict"/);
   });
+
+  /**
+   * The drift guard.
+   *
+   * The failure this prevents is silent and was days away from happening: a
+   * Mermaid hardening option gets added to the app and not to the preview.
+   * `htmlLabels: false` is the live example — DOMPurify >= 3.4 strips HTML out
+   * of <foreignObject>, where Mermaid puts node labels by default, so without
+   * that option every diagram renders as empty shapes. The app's fix
+   * (5a03430, on the dependency branch) touched MarkdownRenderer.svelte alone
+   * because it predates the Quick Look path.
+   *
+   * Nothing would have caught it: no test renders a diagram, so CI stays green
+   * and the first report comes from a user looking at blank boxes.
+   *
+   * The invariant asserted is a superset, not equality: the preview must carry
+   * every Mermaid security option the app carries. It may be ahead — it is
+   * today — but it must never be behind. Renders in Quick Look happen outside
+   * the app's CSP, so "at least as locked down" is the direction that matters.
+   */
+  const mermaidSecurityOptions = (src: string): string[] => {
+    const init = src.slice(src.indexOf("mermaid.initialize"));
+    const body = init.slice(0, init.indexOf("themeVariables"));
+    return [...body.matchAll(/(\w+):\s*(?:"([^"]*)"|(false|true))/g)]
+      .map((m) => `${m[1]}=${m[2] ?? m[3]}`)
+      .filter((opt) => !opt.startsWith("theme=") && !opt.startsWith("startOnLoad="))
+      .sort();
+  };
+
+  it("never lets the preview fall behind the app on Mermaid security options", () => {
+    const app = mermaidSecurityOptions(component);
+    const ql = mermaidSecurityOptions(preview);
+
+    expect(app.length, "parsed no options from MarkdownRenderer.svelte").toBeGreaterThan(0);
+    expect(ql.length, "parsed no options from preview.ts").toBeGreaterThan(0);
+
+    const missing = app.filter((opt) => !ql.includes(opt));
+    expect(
+      missing,
+      `Quick Look is missing Mermaid security options the app has: ${missing.join(", ")}. ` +
+        "Add them to src/quicklook/preview.ts — see CLAUDE.md invariant 1b.",
+    ).toEqual([]);
+  });
+
+  it("keeps Mermaid labels as SVG text in the preview", () => {
+    // Specifically guards the DOMPurify 3.4 interaction; all three spellings
+    // are needed because Mermaid reads them per-diagram-type.
+    expect(preview).toMatch(/htmlLabels:\s*false/);
+    expect(preview).toMatch(/flowchart:\s*\{\s*htmlLabels:\s*false\s*\}/);
+    expect(preview).toMatch(/class:\s*\{\s*htmlLabels:\s*false\s*\}/);
+  });
 });
 
 describe("the generated page's security policy", () => {
@@ -136,5 +187,51 @@ describe("the generated page's security policy", () => {
   it("substitutes at unique tokens, never at </head> or </body>", () => {
     expect(script).toMatch(/__MDHERO_PRELUDE__/);
     expect(script).toMatch(/__MDHERO_BOOT__/);
+  });
+});
+
+/**
+ * Source-level guards for the native shell. These properties are security
+ * relevant, cheap to delete by accident, and covered by nothing else — the
+ * Swift has no test target, and the failures they prevent are all silent.
+ */
+describe("the extension's native shell", () => {
+  const swift = read("quicklook/Preview.swift");
+  const buildScript = read("quicklook/build-appex.sh");
+
+  it("refuses any navigation except the document it loads itself", () => {
+    // No CSP directive stops a link click, and DOMPurify rightly leaves https:
+    // links in the document. Following one would beacon out of a process that
+    // holds com.apple.security.network.client.
+    expect(swift).toMatch(/decidePolicyFor navigationAction/);
+    expect(swift).toMatch(/decisionHandler\(\.cancel\)/);
+    expect(swift).toMatch(/expectingInitialLoad/);
+  });
+
+  it("fails closed if the CSP nonce cannot be generated", () => {
+    // A discarded SecRandomCopyBytes status leaves 16 zero bytes, making the
+    // nonce predictable — which is the only property it has.
+    expect(swift).toMatch(/errSecSuccess/);
+    expect(swift).not.toMatch(/_ = bytes\.withUnsafeMutableBytes/);
+  });
+
+  it("escapes document text so it cannot close the script element", () => {
+    expect(swift).toMatch(/JSONSerialization/);
+    expect(swift).toMatch(/u003C/);
+  });
+
+  it("does not echo the signing identity", () => {
+    // Comment lines are stripped first: the script explains *why* it does not
+    // echo $IDENTITY, and prose about the rule must not trip the rule.
+    const commands = buildScript
+      .split("\n")
+      .filter((line) => !line.trim().startsWith("#"))
+      .join("\n");
+    expect(commands).not.toMatch(/echo[^\n]*\$IDENTITY/);
+  });
+
+  it("stamps the bundle version without a fragile sed expression", () => {
+    expect(buildScript).not.toMatch(/sed[^\n]*__VERSION__/);
+    expect(buildScript).toMatch(/PlistBuddy/);
   });
 });

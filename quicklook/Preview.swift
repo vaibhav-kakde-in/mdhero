@@ -23,6 +23,9 @@ final class PreviewViewController: NSViewController, QLPreviewingController,
     /// Releasing it early is what produces a blank preview.
     private var pending: ((Error?) -> Void)?
     private var webView: WKWebView!
+    /// Set immediately before the one `loadHTMLString` this view ever performs,
+    /// and consumed by the navigation policy below. See `decidePolicyFor`.
+    private var expectingInitialLoad = false
 
     // MARK: - View
 
@@ -52,7 +55,9 @@ final class PreviewViewController: NSViewController, QLPreviewingController,
     func preparePreviewOfFile(at url: URL, completionHandler handler: @escaping (Error?) -> Void) {
         pending = handler
         do {
-            webView.loadHTMLString(try page(for: url), baseURL: nil)
+            let html = try page(for: url)
+            expectingInitialLoad = true
+            webView.loadHTMLString(html, baseURL: nil)
         } catch {
             NSLog("MDHeroQuickLook: %@", error.localizedDescription)
             pending = nil
@@ -75,7 +80,7 @@ final class PreviewViewController: NSViewController, QLPreviewingController,
         // #security: a fresh nonce per preview. preview.html's script-src is
         // nonce-based rather than 'unsafe-inline', so a script that somehow
         // survived the sanitizer still cannot execute.
-        let nonce = Self.makeNonce()
+        let nonce = try Self.makeNonce()
         html = html.replacingOccurrences(of: "__CSP_NONCE__", with: nonce)
 
         // Substitution happens at unique tokens, never at `</head>` or
@@ -120,10 +125,17 @@ final class PreviewViewController: NSViewController, QLPreviewingController,
 
     // MARK: - Helpers
 
-    private static func makeNonce() -> String {
+    /// #security: a failed draw must not silently yield 16 zero bytes — that
+    /// would make the CSP nonce predictable, which is the one property it has.
+    private static func makeNonce() throws -> String {
         var bytes = Data(count: 16)
-        _ = bytes.withUnsafeMutableBytes {
+        let status = bytes.withUnsafeMutableBytes {
             SecRandomCopyBytes(kSecRandomDefault, 16, $0.baseAddress!)
+        }
+        guard status == errSecSuccess else {
+            throw NSError(domain: "MDHeroQuickLook", code: Int(status), userInfo: [
+                NSLocalizedDescriptionKey: "could not generate a CSP nonce (SecRandomCopyBytes \(status))",
+            ])
         }
         return bytes.base64EncodedString().replacingOccurrences(of: "=", with: "")
     }
@@ -151,6 +163,29 @@ final class PreviewViewController: NSViewController, QLPreviewingController,
         default:
             break
         }
+    }
+
+    /// #security: a preview is a viewer, not a browser. Only the in-memory
+    /// document this controller loads is allowed to navigate.
+    ///
+    /// The CSP stops script, forms and `base-uri`, but no CSP directive stops a
+    /// plain link click — and DOMPurify quite correctly leaves `https:` links
+    /// in the document. Following one would navigate this web view out to an
+    /// attacker-chosen URL from a process holding
+    /// `com.apple.security.network.client`, turning any previewed file into a
+    /// beacon: the reader's IP, the time, and the fact that this document was
+    /// opened. Links are therefore dead in the preview; open the file in MDHero
+    /// to follow them.
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
+                 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        if expectingInitialLoad, navigationAction.navigationType == .other {
+            expectingInitialLoad = false
+            decisionHandler(.allow)
+            return
+        }
+        NSLog("MDHeroQuickLook: blocked navigation to %@",
+              navigationAction.request.url?.absoluteString ?? "(none)")
+        decisionHandler(.cancel)
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
