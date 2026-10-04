@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { X } from "@lucide/svelte";
+  import { X, ChevronDown } from "@lucide/svelte";
   import { settings } from "$lib/stores/settings";
+  import { t, type LanguageSetting } from "$lib/i18n";
   import AILookupSettings from "./AILookupSettings.svelte";
 
   let { visible = $bindable(false) }: { visible: boolean } = $props();
@@ -22,20 +23,44 @@
   <div class="dialog-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown}>
     <div class="dialog">
       <div class="dialog-header">
-        <h2 class="dialog-title">Settings</h2>
-        <button onclick={() => (visible = false)} class="dialog-close" aria-label="Close">
+        <h2 class="dialog-title">{$t("settings.title")}</h2>
+        <button onclick={() => (visible = false)} class="dialog-close" aria-label={$t("common.close")}>
           <X size={16} />
         </button>
       </div>
 
       <div class="dialog-body">
         <section class="settings-section">
-          <h3 class="section-title">Behavior</h3>
+          <h3 class="section-title">{$t("settings.general")}</h3>
 
           <label class="setting-row">
             <div class="setting-text">
-              <span class="setting-label">Close on Escape</span>
-              <span class="setting-hint">Press ESC to close the current tab. App quits after the last tab.</span>
+              <span class="setting-label">{$t("settings.language")}</span>
+              <span class="setting-hint">{$t("settings.languageHint")}</span>
+            </div>
+            <div class="select-wrap">
+              <select
+                class="default-select"
+                aria-label={$t("settings.language")}
+                value={$settings.language}
+                onchange={(e) => settings.update((s) => ({ ...s, language: e.currentTarget.value as LanguageSetting }))}
+              >
+                <option value="system">{$t("settings.languageSystem")}</option>
+                <option value="zh">{$t("settings.languageZh")}</option>
+                <option value="en">{$t("settings.languageEn")}</option>
+              </select>
+              <span class="select-chevron" aria-hidden="true"><ChevronDown size={12} strokeWidth={2.25} /></span>
+            </div>
+          </label>
+        </section>
+
+        <section class="settings-section">
+          <h3 class="section-title">{$t("settings.behavior")}</h3>
+
+          <label class="setting-row">
+            <div class="setting-text">
+              <span class="setting-label">{$t("settings.closeOnEscape")}</span>
+              <span class="setting-hint">{$t("settings.closeOnEscapeHint")}</span>
             </div>
             <input
               type="checkbox"
@@ -47,8 +72,8 @@
 
           <label class="setting-row">
             <div class="setting-text">
-              <span class="setting-label">Restore tabs on launch</span>
-              <span class="setting-hint">Reopen the files that were open last time, in the same order.</span>
+              <span class="setting-label">{$t("settings.restoreTabs")}</span>
+              <span class="setting-hint">{$t("settings.restoreTabsHint")}</span>
             </div>
             <input
               type="checkbox"
@@ -60,8 +85,8 @@
 
           <label class="setting-row">
             <div class="setting-text">
-              <span class="setting-label">Auto-present Marp decks</span>
-              <span class="setting-hint">Open documents with <code>marp: true</code> frontmatter as a slideshow.</span>
+              <span class="setting-label">{$t("settings.autoPresentMarp")}</span>
+              <span class="setting-hint">{@html $t("settings.autoPresentMarpHint")}</span>
             </div>
             <input
               type="checkbox"
@@ -73,12 +98,12 @@
         </section>
 
         <section class="settings-section">
-          <h3 class="section-title">Editor</h3>
+          <h3 class="section-title">{$t("settings.editor")}</h3>
 
           <label class="setting-row">
             <div class="setting-text">
-              <span class="setting-label">Line numbers</span>
-              <span class="setting-hint">Show a line-number gutter in the editor.</span>
+              <span class="setting-label">{$t("settings.lineNumbers")}</span>
+              <span class="setting-hint">{$t("settings.lineNumbersHint")}</span>
             </div>
             <input
               type="checkbox"
@@ -90,8 +115,8 @@
         </section>
 
         <section class="settings-section">
-          <h3 class="section-title">AI Lookup</h3>
-          <p class="section-hint">Right-click selected text in the viewer to send it to an AI tool. Manage providers and saved prompts below.</p>
+          <h3 class="section-title">{$t("settings.aiSection")}</h3>
+          <p class="section-hint">{$t("settings.aiSectionHint")}</p>
           <AILookupSettings />
         </section>
       </div>
@@ -212,6 +237,48 @@
     margin: -6px 0 12px;
     line-height: 1.4;
     max-width: 52ch;
+  }
+
+  .select-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .default-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: white;
+    border: 1px solid #d1d1d6;
+    border-radius: 6px;
+    padding: 5px 26px 5px 10px;
+    font-size: 12px;
+    font-family: inherit;
+    color: #1c1c1e;
+    cursor: pointer;
+  }
+
+  :global(html.dark) .default-select {
+    background: #2c2c2e;
+    border-color: #3a3a3c;
+    color: #e5e5e7;
+  }
+
+  .default-select:focus {
+    outline: none;
+    border-color: #0891b2;
+  }
+
+  .select-chevron {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    color: #8e8e93;
+    pointer-events: none;
   }
 
   .setting-row {

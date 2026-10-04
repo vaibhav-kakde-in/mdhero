@@ -14,6 +14,7 @@
     type Provider,
     type Prompt,
   } from "$lib/stores/aiLookup";
+  import { t, type MessageKey } from "$lib/i18n";
 
   // Bundled favicons for the 5 default providers. Sourced once from
   // DuckDuckGo's favicon service (icons.duckduckgo.com/ip3/...) to avoid
@@ -120,7 +121,7 @@
 
   function saveProviderForm(targetId: string | null) {
     if (!pName.trim()) {
-      pError = "Name is required";
+      pError = "ai.error.nameRequired";
       return;
     }
     const urlError = validateProviderUrl(pUrl);
@@ -138,11 +139,11 @@
 
   function savePromptForm(providerId: string, promptId: string | null) {
     if (!prName.trim()) {
-      prError = "Name is required";
+      prError = "ai.error.nameRequired";
       return;
     }
     if (!prTemplate.trim()) {
-      prError = "Template is required";
+      prError = "ai.error.templateRequired";
       return;
     }
     if (promptId) {
@@ -158,18 +159,20 @@
 
   function handleRemoveProvider(p: Provider) {
     const msg =
-      p.prompts.length > 0
-        ? `Delete "${p.name}" and its ${p.prompts.length} prompt${p.prompts.length === 1 ? "" : "s"}?`
-        : `Delete "${p.name}"?`;
+      p.prompts.length === 0
+        ? $t("ai.confirm.deleteProvider", { name: p.name })
+        : p.prompts.length === 1
+          ? $t("ai.confirm.deleteProviderPrompts.one", { name: p.name })
+          : $t("ai.confirm.deleteProviderPrompts.other", { name: p.name, count: p.prompts.length });
     if (confirm(msg)) removeProvider(p.id);
   }
 
   function handleRemovePrompt(providerId: string, pr: Prompt) {
-    if (confirm(`Delete prompt "${pr.name}"?`)) removePrompt(providerId, pr.id);
+    if (confirm($t("ai.confirm.deletePrompt", { name: pr.name }))) removePrompt(providerId, pr.id);
   }
 
   function handleResetDefaults() {
-    if (confirm("Reset all providers and prompts to defaults? Your customizations will be lost.")) {
+    if (confirm($t("ai.confirm.reset"))) {
       resetToDefaults();
       cancelAll();
       manuallyToggled = new Set();
@@ -231,16 +234,16 @@
         <div class="actions">
           <button
             class="icon-btn"
-            title="Edit provider"
-            aria-label="Edit provider"
+            title={$t("ai.editProvider")}
+            aria-label={$t("ai.editProvider")}
             onclick={(e) => { e.stopPropagation(); startEditProvider(p); }}
           >
             <Pencil size={14} />
           </button>
           <button
             class="icon-btn icon-btn-danger"
-            title="Delete provider"
-            aria-label="Delete provider"
+            title={$t("ai.deleteProvider")}
+            aria-label={$t("ai.deleteProvider")}
             onclick={(e) => { e.stopPropagation(); handleRemoveProvider(p); }}
           >
             <Trash2 size={14} />
@@ -251,12 +254,12 @@
       {#if expanded}
         {#if isEditingProvider}
           <div class="edit-form provider-edit-form">
-            <input class="text-input" bind:value={pName} placeholder="Provider name" />
+            <input class="text-input" bind:value={pName} placeholder={$t("ai.providerNamePlaceholder")} />
             <input class="text-input mono" bind:value={pUrl} placeholder="https://example.com/?q={`{prompt}`}" />
-            {#if pError}<div class="form-error">{pError}</div>{/if}
+            {#if pError}<div class="form-error">{$t(pError as MessageKey)}</div>{/if}
             <div class="form-actions">
-              <button class="form-btn" onclick={cancelAll}>Cancel</button>
-              <button class="form-btn form-btn-primary" onclick={() => saveProviderForm(p.id)}>Save</button>
+              <button class="form-btn" onclick={cancelAll}>{$t("common.cancel")}</button>
+              <button class="form-btn form-btn-primary" onclick={() => saveProviderForm(p.id)}>{$t("common.save")}</button>
             </div>
           </div>
         {/if}
@@ -266,12 +269,12 @@
             {@const isEditingThisPrompt = editingPromptKey === `${p.id}:${pr.id}`}
             {#if isEditingThisPrompt}
               <div class="edit-form prompt-edit-form">
-                <input class="text-input" bind:value={prName} placeholder="Prompt name" />
-                <textarea class="textarea-input" bind:value={prTemplate} rows="2" placeholder="Template — use {`{selection}`} where the text goes"></textarea>
-                {#if prError}<div class="form-error">{prError}</div>{/if}
+                <input class="text-input" bind:value={prName} placeholder={$t("ai.promptNamePlaceholder")} />
+                <textarea class="textarea-input" bind:value={prTemplate} rows="2" placeholder={$t("ai.templatePlaceholder")}></textarea>
+                {#if prError}<div class="form-error">{$t(prError as MessageKey)}</div>{/if}
                 <div class="form-actions">
-                  <button class="form-btn" onclick={cancelAll}>Cancel</button>
-                  <button class="form-btn form-btn-primary" onclick={() => savePromptForm(p.id, pr.id)}>Save</button>
+                  <button class="form-btn" onclick={cancelAll}>{$t("common.cancel")}</button>
+                  <button class="form-btn form-btn-primary" onclick={() => savePromptForm(p.id, pr.id)}>{$t("common.save")}</button>
                 </div>
               </div>
             {:else}
@@ -280,16 +283,16 @@
                 <div class="actions">
                   <button
                     class="icon-btn"
-                    title="Edit prompt"
-                    aria-label="Edit prompt"
+                    title={$t("ai.editPrompt")}
+                    aria-label={$t("ai.editPrompt")}
                     onclick={() => startEditPrompt(p.id, pr)}
                   >
                     <Pencil size={13} />
                   </button>
                   <button
                     class="icon-btn icon-btn-danger"
-                    title="Delete prompt"
-                    aria-label="Delete prompt"
+                    title={$t("ai.deletePrompt")}
+                    aria-label={$t("ai.deletePrompt")}
                     onclick={() => handleRemovePrompt(p.id, pr)}
                   >
                     <Trash2 size={13} />
@@ -301,16 +304,16 @@
 
           {#if addingPromptFor === p.id}
             <div class="edit-form prompt-edit-form">
-              <input class="text-input" bind:value={prName} placeholder="Prompt name" />
-              <textarea class="textarea-input" bind:value={prTemplate} rows="2" placeholder="Template — use {`{selection}`} where the text goes"></textarea>
-              {#if prError}<div class="form-error">{prError}</div>{/if}
+              <input class="text-input" bind:value={prName} placeholder={$t("ai.promptNamePlaceholder")} />
+              <textarea class="textarea-input" bind:value={prTemplate} rows="2" placeholder={$t("ai.templatePlaceholder")}></textarea>
+              {#if prError}<div class="form-error">{$t(prError as MessageKey)}</div>{/if}
               <div class="form-actions">
-                <button class="form-btn" onclick={cancelAll}>Cancel</button>
-                <button class="form-btn form-btn-primary" onclick={() => savePromptForm(p.id, null)}>Add</button>
+                <button class="form-btn" onclick={cancelAll}>{$t("common.cancel")}</button>
+                <button class="form-btn form-btn-primary" onclick={() => savePromptForm(p.id, null)}>{$t("common.add")}</button>
               </div>
             </div>
           {:else}
-            <button class="add-prompt-btn" onclick={() => startAddPrompt(p.id)}>+ Add prompt</button>
+            <button class="add-prompt-btn" onclick={() => startAddPrompt(p.id)}>{$t("ai.addPrompt")}</button>
           {/if}
         </div>
       {/if}
@@ -319,20 +322,20 @@
 
   {#if addingProviderOpen}
     <div class="edit-form add-provider-form">
-      <input class="text-input" bind:value={pName} placeholder="Provider name" />
+      <input class="text-input" bind:value={pName} placeholder={$t("ai.providerNamePlaceholder")} />
       <input class="text-input mono" bind:value={pUrl} placeholder="https://example.com/?q={`{prompt}`}" />
-      {#if pError}<div class="form-error">{pError}</div>{/if}
+      {#if pError}<div class="form-error">{$t(pError as MessageKey)}</div>{/if}
       <div class="form-actions">
-        <button class="form-btn" onclick={cancelAll}>Cancel</button>
-        <button class="form-btn form-btn-primary" onclick={() => saveProviderForm(null)}>Add</button>
+        <button class="form-btn" onclick={cancelAll}>{$t("common.cancel")}</button>
+        <button class="form-btn form-btn-primary" onclick={() => saveProviderForm(null)}>{$t("common.add")}</button>
       </div>
     </div>
   {:else}
-    <button class="add-provider-btn" onclick={startAddProvider}>+ Add provider</button>
+    <button class="add-provider-btn" onclick={startAddProvider}>{$t("ai.addProvider")}</button>
   {/if}
 
   <div class="default-row">
-    <span class="default-label">Default for Custom prompt</span>
+    <span class="default-label">{$t("ai.defaultForCustomPrompt")}</span>
     <div class="default-right">
       {#if $aiLookup.providers.length > 0}
         <div class="select-wrap">
@@ -352,8 +355,8 @@
       {/if}
       <button
         class="reset-icon-btn"
-        title="Reset to defaults"
-        aria-label="Reset all providers and prompts to defaults"
+        title={$t("ai.resetTitle")}
+        aria-label={$t("ai.resetAria")}
         onclick={handleResetDefaults}
       >
         <RotateCcw size={14} />

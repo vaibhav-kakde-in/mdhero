@@ -5,6 +5,7 @@
   import { renderFull } from "$lib/renderer/pipeline";
   import { tabStore } from "$lib/stores/tabs";
   import { document as docStore } from "$lib/stores/document";
+  import { t, locale } from "$lib/i18n";
 
   let { visible = $bindable(false), defaultMode = "paste" }: { visible: boolean; defaultMode?: "paste" | "url" } = $props();
 
@@ -26,8 +27,8 @@
 
     const result = renderFull(markdown);
     const now = new Date();
-    const timeLabel = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const fileName = `Pasted — ${timeLabel}`;
+    const timeLabel = now.toLocaleTimeString($locale === "zh" ? "zh-CN" : "en-US", { hour: "2-digit", minute: "2-digit" });
+    const fileName = $t("paste.tabName", { time: timeLabel });
 
     const pastePath = `paste://${Date.now()}`;
     tabStore.addTab(pastePath, fileName, markdown, result.html, result.frontmatter, result.wordCount);
@@ -50,7 +51,7 @@
   async function handleFetchUrl() {
     const trimmed = urlInput.trim();
     if (!trimmed || !isUrl(trimmed)) {
-      urlError = "Please enter a valid URL";
+      urlError = $t("url.invalid");
       return;
     }
 
@@ -63,11 +64,11 @@
 
       if (!res.ok) {
         if (res.status === 404) {
-          urlError = "File not found. Check the URL or ensure the repo is public.";
+          urlError = $t("paste.urlNotFound");
         } else if (res.status === 403) {
-          urlError = "Access denied. This may be a private repository.";
+          urlError = $t("paste.urlForbidden");
         } else {
-          urlError = `Failed to fetch (${res.status})`;
+          urlError = $t("paste.urlFetchFailed", { status: res.status });
         }
         urlLoading = false;
         return;
@@ -77,7 +78,7 @@
 
       // Check if it looks like markdown/text (not HTML or binary)
       if (markdown.trim().startsWith("<!DOCTYPE") || markdown.trim().startsWith("<html")) {
-        urlError = "URL returned HTML, not markdown. Try a raw/direct link.";
+        urlError = $t("paste.urlHtml");
         urlLoading = false;
         return;
       }
@@ -102,7 +103,7 @@
       urlInput = "";
       visible = false;
     } catch (err) {
-      urlError = `Network error: ${err instanceof Error ? err.message : "Could not reach URL"}`;
+      urlError = $t("url.networkError", { msg: err instanceof Error ? err.message : $t("url.unreachable") });
     }
 
     urlLoading = false;
@@ -155,21 +156,21 @@
       <div class="modal-header">
         <div class="modal-header-left">
           <div class="mode-tabs">
-            <button class="mode-tab" class:active={mode === "paste"} onclick={() => (mode = "paste")}>Paste</button>
-            <button class="mode-tab" class:active={mode === "url"} onclick={() => (mode = "url")}>Open URL</button>
+            <button class="mode-tab" class:active={mode === "paste"} onclick={() => (mode = "paste")}>{$t("paste.tabPaste")}</button>
+            <button class="mode-tab" class:active={mode === "url"} onclick={() => (mode = "url")}>{$t("paste.tabUrl")}</button>
           </div>
           {#if mode === "paste" && autoDetected}
-            <span class="llm-badge">LLM detected</span>
+            <span class="llm-badge">{$t("paste.llmDetected")}</span>
           {/if}
         </div>
         <div class="modal-header-right">
           {#if mode === "paste"}
             <label class="llm-toggle">
               <input type="checkbox" bind:checked={llmMode} />
-              <span>LLM Mode</span>
+              <span>{$t("paste.llmMode")}</span>
             </label>
           {/if}
-          <button onclick={() => (visible = false)} class="modal-close">
+          <button onclick={() => (visible = false)} class="modal-close" aria-label={$t("common.close")}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="3" x2="11" y2="11"/><line x1="11" y1="3" x2="3" y2="11"/></svg>
           </button>
         </div>
@@ -180,16 +181,16 @@
           <textarea
             bind:value={text}
             oninput={handleInput}
-            placeholder={'Paste markdown here...\n\nSupports raw markdown and LLM API responses with escaped \\n characters.'}
+            placeholder={$t("paste.placeholder")}
             class="modal-textarea"
           ></textarea>
         </div>
 
         <div class="modal-footer">
-          <span class="modal-hint">{MOD}+Enter to render</span>
+          <span class="modal-hint">{$t("paste.hintRender", { mod: MOD })}</span>
           <div class="modal-actions">
-            <button onclick={() => (visible = false)} class="btn-cancel">Cancel</button>
-            <button onclick={handleRender} disabled={!text.trim()} class="btn-render">Render</button>
+            <button onclick={() => (visible = false)} class="btn-cancel">{$t("common.cancel")}</button>
+            <button onclick={handleRender} disabled={!text.trim()} class="btn-render">{$t("paste.render")}</button>
           </div>
         </div>
       {:else}
@@ -202,28 +203,28 @@
               class="url-input"
             />
             <button onclick={handleFetchUrl} disabled={urlLoading || !urlInput.trim()} class="btn-render">
-              {urlLoading ? "Fetching..." : "Fetch"}
+              {urlLoading ? $t("paste.fetching") : $t("paste.fetch")}
             </button>
           </div>
           {#if urlError}
             <div class="url-error">{urlError}</div>
           {/if}
           <div class="url-hints">
-            <p class="url-hints-title">Supported URLs:</p>
+            <p class="url-hints-title">{$t("paste.supportedUrls")}</p>
             <ul>
-              <li>GitHub — <code>github.com/user/repo/blob/main/file.md</code></li>
-              <li>Gist — <code>gist.github.com/user/id</code></li>
-              <li>GitLab — <code>gitlab.com/user/repo/-/blob/main/file.md</code></li>
-              <li>Bitbucket — <code>bitbucket.org/user/repo/src/main/file.md</code></li>
-              <li>Any raw URL — <code>https://example.com/doc.md</code></li>
+              <li>{$t("paste.github")} — <code>github.com/user/repo/blob/main/file.md</code></li>
+              <li>{$t("paste.gist")} — <code>gist.github.com/user/id</code></li>
+              <li>{$t("paste.gitlab")} — <code>gitlab.com/user/repo/-/blob/main/file.md</code></li>
+              <li>{$t("paste.bitbucket")} — <code>bitbucket.org/user/repo/src/main/file.md</code></li>
+              <li>{$t("paste.anyRawUrl")} — <code>https://example.com/doc.md</code></li>
             </ul>
           </div>
         </div>
 
         <div class="modal-footer">
-          <span class="modal-hint">{MOD}+Enter to fetch</span>
+          <span class="modal-hint">{$t("paste.hintFetch", { mod: MOD })}</span>
           <div class="modal-actions">
-            <button onclick={() => (visible = false)} class="btn-cancel">Cancel</button>
+            <button onclick={() => (visible = false)} class="btn-cancel">{$t("common.cancel")}</button>
           </div>
         </div>
       {/if}
