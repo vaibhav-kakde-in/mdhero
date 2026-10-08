@@ -8,6 +8,7 @@ import { renderFull } from "../renderer/pipeline";
 import { addRecentFile } from "../stores/recents";
 import { pinnedFolders } from "../stores/pinned";
 import { basename } from "../utils/path";
+import { translate } from "../i18n";
 
 export async function readMarkdownFile(path: string): Promise<string> {
   return invoke<string>("read_markdown_file", { path });
@@ -70,7 +71,7 @@ export async function openFile(path: string): Promise<void> {
       frontmatter: null,
       wordCount: 0,
       loading: false,
-      error: `Failed to open file: ${err}`,
+      error: translate("files.openFailed", { err: String(err) }),
     });
   }
 }
@@ -89,7 +90,7 @@ export function newDocument(): void {
   const result = renderFull("");
   const tabId = tabStore.addTab(
     filePath,
-    "Untitled",
+    translate("files.untitled"),
     "",
     result.html,
     result.frontmatter,
@@ -106,7 +107,7 @@ export function newDocument(): void {
  */
 export async function saveAsNewDocument(tabId: string, content: string): Promise<string | null> {
   const chosen = await save({
-    defaultPath: "Untitled.md",
+    defaultPath: `${translate("files.untitled")}.md`,
     filters: [{ name: "Markdown", extensions: ["md", "markdown", "mdown", "mkd"] }],
   });
   if (!chosen) return null;

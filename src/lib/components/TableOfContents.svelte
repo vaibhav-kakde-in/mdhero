@@ -9,6 +9,7 @@
     DEFAULT_TOC_WIDTH,
     MIN_TOC_WIDTH,
   } from "$lib/stores/settings";
+  import { t } from "$lib/i18n";
 
   let dragging = $state(false);
   /** Width being painted right now, or null when not dragging. Kept in state so
@@ -177,7 +178,7 @@
 {#if $tocVisible && $tocEntries.length > 0}
   <aside class="toc-sidebar">
     <div class="toc-header">
-      <span>On this page</span>
+      <span>{$t('toc.onThisPage')}</span>
     </div>
     <nav class="toc-nav">
       {#each $tocEntries as entry (entry.id)}
@@ -209,12 +210,12 @@
     class:dragging
     role="separator"
     aria-orientation="vertical"
-    aria-label="Resize table of contents"
+    aria-label={$t('toc.resize')}
     aria-valuenow={liveWidth ?? $settings.tocWidth}
     aria-valuemin={MIN_TOC_WIDTH}
     aria-valuemax={maxTocWidthFor(viewportWidth)}
     tabindex="0"
-    title="Drag to resize — double-click to reset"
+    title={$t('toc.resizeHint')}
     onpointerdown={startResize}
     onkeydown={handleKeydown}
     onkeyup={handleKeyup}

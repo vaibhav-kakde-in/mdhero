@@ -6,6 +6,7 @@
   import { tocVisible, tocEntries, toggleToc, activeHeadingId } from "../stores/toc";
   import { openFileDialog } from "../tauri/files";
   import { copyAsRichText, copyAsMarkdown } from "../utils/clipboard";
+  import { t, translate } from "$lib/i18n";
   import ReaderControls from "./ReaderControls.svelte";
   import brandLogo from "$lib/assets/mdhero-icon.png";
 
@@ -95,7 +96,7 @@
     const article = globalThis.document?.querySelector("article.prose");
     if (!article || !$document.content) return;
     const success = await copyAsRichText(article.innerHTML, $document.content);
-    copyFeedback = success ? "Copied!" : "Failed";
+    copyFeedback = success ? translate("common.copied") : translate("common.copyFailed");
     showCopyMenu = false;
     setTimeout(() => (copyFeedback = ""), 1500);
   }
@@ -103,7 +104,7 @@
   async function handleCopyMarkdown() {
     if (!$document.content) return;
     const success = await copyAsMarkdown($document.content);
-    copyFeedback = success ? "Copied!" : "Failed";
+    copyFeedback = success ? translate("common.copied") : translate("common.copyFailed");
     showCopyMenu = false;
     setTimeout(() => (copyFeedback = ""), 1500);
   }
@@ -122,13 +123,13 @@
     <img src={brandLogo} alt="MDHero" width="26" height="26" class="toolbar-logo" />
     <span class="toolbar-wordmark">MDHero</span>
     <div class="btn-group">
-      <button onclick={onOpen} class="btn btn-primary" title="Open file ({MOD}+O)">
-        Open
+      <button onclick={onOpen} class="btn btn-primary" title={$t('toolbar.openTitle', { mod: MOD })}>
+        {$t('toolbar.open')}
       </button>
-      <button onclick={onPaste} class="btn btn-ghost" title="Paste markdown ({MOD}+Shift+V)">
-        Paste
+      <button onclick={onPaste} class="btn btn-ghost" title={$t('toolbar.pasteTitle', { mod: MOD })}>
+        {$t('toolbar.paste')}
       </button>
-      <button onclick={onUrl} class="btn btn-ghost" title="Open URL">
+      <button onclick={onUrl} class="btn btn-ghost" title={$t('toolbar.openUrlTitle')}>
         <svg width="18" height="18" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="5.5"/><ellipse cx="7" cy="7" rx="2.5" ry="5.5"/><line x1="1.5" y1="7" x2="12.5" y2="7"/></svg>
       </button>
     </div>
@@ -145,31 +146,31 @@
     <div
       class="mode-segmented"
       role="group"
-      aria-label="View mode"
+      aria-label={$t('toolbar.viewModeAria')}
       title={!$document.filePath
-        ? 'View · Split · Edit (open a file first)'
+        ? $t('toolbar.modeTitleNoFile')
         : !canEdit
-        ? 'Split and Edit are only available for local files'
-        : 'View · Split · Edit'}
+        ? $t('toolbar.modeTitleNoEdit')
+        : $t('toolbar.modeTitle')}
     >
       <button
         class="mode-seg"
         class:active={editMode === 'view'}
         onclick={() => onSetMode('view')}
         disabled={!$document.filePath}
-      >View</button>
+      >{$t('toolbar.view')}</button>
       <button
         class="mode-seg"
         class:active={editMode === 'split'}
         onclick={() => onSetMode('split')}
         disabled={!canEdit}
-      >Split</button>
+      >{$t('toolbar.split')}</button>
       <button
         class="mode-seg"
         class:active={editMode === 'edit'}
         onclick={() => onSetMode('edit')}
         disabled={!canEdit}
-      >Edit</button>
+      >{$t('toolbar.edit')}</button>
     </div>
   </div>
 
@@ -180,12 +181,12 @@
       class:active={$tocVisible}
       disabled={!$document.renderedHtml || $tocEntries.length === 0 || isEditing}
       title={!$document.renderedHtml
-        ? 'Table of Contents (open a file first)'
+        ? $t('toolbar.tocTitleNoHtml')
         : isEditing
-        ? 'Table of Contents (exit edit mode to use)'
+        ? $t('toolbar.tocTitleEditing')
         : $tocEntries.length === 0
-        ? 'Table of Contents (no headings in this document)'
-        : 'Table of Contents'}
+        ? $t('toolbar.tocTitleNoHeadings')
+        : $t('toolbar.tocTitle')}
     >
       <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="10" y2="8"/><line x1="2" y1="12" x2="12" y2="12"/></svg>
     </button>
@@ -195,7 +196,7 @@
       class="btn btn-icon"
       class:active={showReaderControls}
       disabled={!$document.renderedHtml}
-      title={$document.renderedHtml ? 'Reading preferences (Aa)' : 'Reading preferences (open a file first)'}
+      title={$document.renderedHtml ? $t('toolbar.readerTitle') : $t('toolbar.readerTitleNoFile')}
     >
       <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><text x="1" y="12" font-size="12" font-weight="700" stroke="none" fill="currentColor" font-family="-apple-system, BlinkMacSystemFont, sans-serif">Aa</text></svg>
     </button>
@@ -206,11 +207,11 @@
       class:active={$settings.widthMode === "wide"}
       disabled={!$document.renderedHtml}
       title={!$document.renderedHtml
-        ? 'Toggle wide view (open a file first)'
+        ? $t('toolbar.widthTitleNoFile')
         : $settings.widthMode === "wide"
-        ? 'Use comfortable width'
-        : 'Use wide viewport'}
-      aria-label={$settings.widthMode === "wide" ? 'Use comfortable width' : 'Use wide viewport'}
+        ? $t('toolbar.useComfortable')
+        : $t('toolbar.useWide')}
+      aria-label={$settings.widthMode === "wide" ? $t('toolbar.useComfortable') : $t('toolbar.useWide')}
     >
       <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M2.5 5.5V3.5h2" />
@@ -231,10 +232,10 @@
       class:active={rawMode}
       disabled={!$document.renderedHtml || isEditing}
       title={!$document.renderedHtml
-        ? 'View raw markdown (open a file first)'
+        ? $t('toolbar.rawTitleNoFile')
         : isEditing
-        ? 'View raw markdown (exit edit mode to use)'
-        : `View raw markdown (${MOD}+U)`}
+        ? $t('toolbar.rawTitleEditing')
+        : $t('toolbar.rawTitle', { mod: MOD })}
     >
       <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="6,5 2,8 6,11"/>
@@ -248,8 +249,8 @@
         onclick={onTogglePresent}
         class="btn btn-icon"
         class:active={presenting}
-        title={presenting ? 'Exit presentation (Esc)' : 'Present slideshow'}
-        aria-label={presenting ? 'Exit presentation' : 'Present slideshow'}
+        title={presenting ? $t('toolbar.exitPresentTitle') : $t('toolbar.presentTitle')}
+        aria-label={presenting ? $t('toolbar.exitPresentAria') : $t('toolbar.presentTitle')}
       >
         <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="1.5" y="2.5" width="13" height="9" rx="1"/>
@@ -264,7 +265,7 @@
       class="btn btn-icon save-btn"
       class:dirty
       disabled={!dirty}
-      title={dirty ? `Save unsaved changes (${MOD}+S)` : 'Save (no changes to save)'}
+      title={dirty ? $t('toolbar.saveDirty', { mod: MOD }) : $t('toolbar.saveClean')}
     >
       <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 3h8l2 2v8H3z"/>
@@ -282,10 +283,10 @@
         class="btn btn-icon"
         disabled={!$document.renderedHtml || isEditing}
         title={!$document.renderedHtml
-          ? 'Copy content (open a file first)'
+          ? $t('toolbar.copyTitleNoFile')
           : isEditing
-          ? 'Copy content (exit edit mode to use)'
-          : 'Copy content'}
+          ? $t('toolbar.copyTitleEditing')
+          : $t('toolbar.copyTitle')}
       >
         {#if copyFeedback}
           <span style="font-size:11px">{copyFeedback}</span>
@@ -297,12 +298,12 @@
       {#if showCopyMenu}
         <div class="dropdown">
           <button onclick={handleCopyRichText} class="dropdown-item">
-            <span>Rich Text</span>
-            <span class="dropdown-hint">for Docs / Notion</span>
+            <span>{$t('toolbar.copyRichText')}</span>
+            <span class="dropdown-hint">{$t('toolbar.copyRichTextHint')}</span>
           </button>
           <button onclick={handleCopyMarkdown} class="dropdown-item">
-            <span>Markdown</span>
-            <span class="dropdown-hint">raw source</span>
+            <span>{$t('toolbar.copyMarkdown')}</span>
+            <span class="dropdown-hint">{$t('toolbar.copyMarkdownHint')}</span>
           </button>
         </div>
       {/if}
@@ -313,10 +314,10 @@
       class="btn btn-icon"
       disabled={!$document.renderedHtml || isEditing}
       title={!$document.renderedHtml
-        ? 'Export PDF (open a file first)'
+        ? $t('toolbar.pdfTitleNoFile')
         : isEditing
-        ? 'Export PDF (exit edit mode to use)'
-        : 'Export PDF'}
+        ? $t('toolbar.pdfTitleEditing')
+        : $t('toolbar.pdfTitle')}
     >
       <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M4 2h6l3 3v9H4z"/>
@@ -331,8 +332,8 @@
     <button
       onclick={() => { closeAll(); onOpenSettings(); }}
       class="btn btn-icon"
-      title="Settings ({MOD}+,)"
-      aria-label="Settings"
+      title={$t('toolbar.settings', { mod: MOD })}
+      aria-label={$t('toolbar.settingsAria')}
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
@@ -340,7 +341,7 @@
       </svg>
     </button>
 
-    <button onclick={handleThemeToggle} class="btn btn-icon" title="Toggle theme">
+    <button onclick={handleThemeToggle} class="btn btn-icon" title={$t('toolbar.theme')}>
       {getThemeIcon($themeMode)}
     </button>
   </div>

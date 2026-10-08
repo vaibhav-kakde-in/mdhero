@@ -2,6 +2,7 @@
   import { openFile } from "../tauri/files";
   import { getCurrentWebview } from "@tauri-apps/api/webview";
   import { onMount } from "svelte";
+  import { t } from "$lib/i18n";
 
   let isDragging = $state(false);
 
@@ -44,7 +45,7 @@
         <polyline points="12,14 16,10 20,14" />
         <line x1="16" y1="10" x2="16" y2="22" />
       </svg>
-      <p class="dropzone-text">Drop to open</p>
+      <p class="dropzone-text">{$t('dropzone.drop')}</p>
     </div>
   </div>
 {/if}

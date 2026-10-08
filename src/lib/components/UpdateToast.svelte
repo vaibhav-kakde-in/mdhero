@@ -2,6 +2,7 @@
   import { updateAvailable, updateDismissed, dismissUpdate } from "$lib/stores/updater";
   import { installUpdate, updateInstalling, updateProgress, updateError } from "$lib/stores/autoUpdate";
   import { tabStore, HOME_TAB_ID } from "$lib/stores/tabs";
+  import { t } from "$lib/i18n";
 
   const { activeTabId } = tabStore;
 
@@ -27,11 +28,11 @@
       </svg>
       <span class="update-text">
         {#if $updateInstalling}
-          {#if $updateProgress >= 0}Downloading… {$updateProgress}%{:else}Installing…{/if}
+          {#if $updateProgress >= 0}{$t('update.downloadingShort', { progress: $updateProgress })}{:else}{$t('update.installingShort')}{/if}
         {:else if $updateError}
-          Update failed
+          {$t('update.failed')}
         {:else}
-          MDHero <strong>v{$updateAvailable.version}</strong> is available
+          {$t('update.toastAvailable', { version: $updateAvailable.version })}
         {/if}
       </span>
     </div>
@@ -39,11 +40,11 @@
       {#if $updateInstalling}
         <!-- buttons hidden while installing; progress shows in the text -->
       {:else if $updateError}
-        <button class="update-btn download" onclick={openRelease}>Download manually</button>
-        <button class="update-btn dismiss" onclick={dismissUpdate}>Later</button>
+        <button class="update-btn download" onclick={openRelease}>{$t('update.downloadManually')}</button>
+        <button class="update-btn dismiss" onclick={dismissUpdate}>{$t('update.later')}</button>
       {:else}
-        <button class="update-btn download" onclick={installUpdate}>Update now</button>
-        <button class="update-btn dismiss" onclick={dismissUpdate}>Later</button>
+        <button class="update-btn download" onclick={installUpdate}>{$t('update.updateNow')}</button>
+        <button class="update-btn dismiss" onclick={dismissUpdate}>{$t('update.later')}</button>
       {/if}
     </div>
   </div>

@@ -35,6 +35,7 @@
   import PasteModal from "$lib/components/PasteModal.svelte";
   import OpenDialog from "$lib/components/OpenDialog.svelte";
   import SettingsDialog from "$lib/components/SettingsDialog.svelte";
+  import LanguageDialog from "$lib/components/LanguageDialog.svelte";
   import AboutDialog from "$lib/components/AboutDialog.svelte";
   import CustomPromptModal from "$lib/components/CustomPromptModal.svelte";
   import { assembleUrlByIds, consumePendingSelection } from "$lib/stores/aiLookup";
@@ -50,6 +51,7 @@
   import { updateScrollPercent } from "$lib/stores/recents";
   import { checkForUpdates, updateAvailable, updateDismissed, checkInFlight } from "$lib/stores/updater";
   import { get } from "svelte/store";
+  import { t, translate, hasChosenLocale } from "$lib/i18n";
   import { getCurrentSourceLine, scrollToSourceLine, type ViewMode } from "$lib/utils/scroll-sync";
   import { gutterHtml, gutterWidth, lineCount } from "$lib/utils/line-gutter";
   import { saveProgress, getProgress } from "$lib/stores/readingProgress";
@@ -60,6 +62,7 @@
   let pasteDefaultMode = $state<"paste" | "url">("paste");
   let openVisible = $state(false);
   let settingsVisible = $state(false);
+  let languageVisible = $state(false);
   let aboutVisible = $state(false);
   let customPromptVisible = $state(false);
   let customPromptSelection = $state("");
@@ -91,7 +94,7 @@
   // ESC handler. Each modal's own ESC handler also calls stopPropagation(); the
   // two together cover both focus-inside and focus-outside-modal cases.
   let anyModalVisible = $derived(
-    searchVisible || pasteVisible || openVisible || settingsVisible || aboutVisible || customPromptVisible || lightboxVisible
+    searchVisible || pasteVisible || openVisible || settingsVisible || aboutVisible || customPromptVisible || lightboxVisible || languageVisible
   );
 
   // Reading progress: debounced scroll save + restore guard
@@ -335,8 +338,13 @@
           // safe one, so a reflexive Return keeps editing.
           const { ask } = await import("@tauri-apps/plugin-dialog");
           const keepEditing = await ask(
-            `${tab.fileName} changed on disk while you were editing. Saving will overwrite that version.`,
-            { title: "File changed on disk", kind: "warning", okLabel: "Keep Editing", cancelLabel: "Overwrite" }
+            translate("page.diskChangedMsg", { name: tab.fileName }),
+            {
+              title: translate("page.diskChangedTitle"),
+              kind: "warning",
+              okLabel: translate("page.keepEditing"),
+              cancelLabel: translate("page.overwrite"),
+            }
           );
           if (keepEditing) return;
         }
@@ -368,7 +376,7 @@
       });
     } catch (err) {
       console.error("Save failed:", err);
-      alert(`Save failed: ${err}`);
+      alert(translate("page.saveFailed", { err: String(err) }));
     }
   }
 
@@ -402,7 +410,7 @@
     const name = basename(resolved);
 
     if (!(await pathExists(resolved))) {
-      showToast(`Can't find “${name}”`);
+      showToast(translate("page.cantFind", { name }));
       return;
     }
 
@@ -416,14 +424,14 @@
     // one click. The capability independently permits only PDFs and common
     // raster images; keep this denylist as defense-in-depth.
     if (isExecutablePath(resolved)) {
-      showToast(`Won't open executable file “${name}”. Open it from your file manager if you trust it.`);
+      showToast(translate("page.wontOpenExecutable", { name }));
       return;
     }
 
     try {
       await openWithSystem(resolved);
     } catch {
-      showToast(`Couldn't open “${name}”`);
+      showToast(translate("page.couldntOpen", { name }));
     }
   }
 
@@ -489,11 +497,11 @@
       // reflexive Return can't destroy unsaved work. `ask`'s OK button is the
       // default, so OK = "Keep Editing" and the cancel-position button is the
       // deliberate, non-default "Discard".
-      const keepEditing = await ask(`You have unsaved changes to ${t.fileName}.`, {
-        title: "Unsaved changes",
+      const keepEditing = await ask(translate("page.unsavedChangesOne", { name: t.fileName }), {
+        title: translate("page.unsavedChangesTitle"),
         kind: "warning",
-        okLabel: "Keep Editing",
-        cancelLabel: "Discard",
+        okLabel: translate("page.keepEditing"),
+        cancelLabel: translate("page.discard"),
       });
       if (keepEditing) return false;
     }
@@ -566,6 +574,11 @@
     initRenderer();
     rendererReady = true;
 
+    // First run: ask for a language. The picker highlights the OS-detected
+    // one (English when the OS language isn't supported); choosing or
+    // dismissing stores a choice, so it only ever appears once.
+    if (!hasChosenLocale()) languageVisible = true;
+
     // Expose functions for native menu and OS file-open handlers
     (window as any).__mdhero_open_file = () => { openVisible = true; };
     (window as any).__mdhero_open_path = (path: string) => {
@@ -612,13 +625,13 @@
           const { ask } = await import("@tauri-apps/plugin-dialog");
           const msg =
             dirty.length === 1
-              ? `You have unsaved changes to ${dirty[0].fileName}.`
-              : `You have unsaved changes in ${dirty.length} tabs.`;
+              ? translate("page.unsavedChangesOne", { name: dirty[0].fileName })
+              : translate("page.unsavedChangesMany", { count: dirty.length });
           const keepEditing = await ask(msg, {
-            title: "Unsaved changes",
+            title: translate("page.unsavedChangesTitle"),
             kind: "warning",
-            okLabel: "Keep Editing",
-            cancelLabel: "Discard",
+            okLabel: translate("page.keepEditing"),
+            cancelLabel: translate("page.discard"),
           });
           if (keepEditing) return;
         } catch {
@@ -636,7 +649,7 @@
       // If still nothing, give the user explicit feedback — silence is confusing
       // when a menu item is the trigger.
       if (!get(updateAvailable)) {
-        alert("MDHero is up to date.");
+        alert(translate("page.upToDate"));
       }
     };
     // Router for AI Lookup right-click menu items. lib.rs::setup forwards any
@@ -1168,16 +1181,17 @@
   <PasteModal bind:visible={pasteVisible} defaultMode={pasteDefaultMode} />
   <OpenDialog bind:visible={openVisible} />
   <SettingsDialog bind:visible={settingsVisible} />
+  <LanguageDialog bind:visible={languageVisible} />
   <AboutDialog bind:visible={aboutVisible} />
   <CustomPromptModal bind:visible={customPromptVisible} selection={customPromptSelection} />
 
   {#if !rendererReady}
     <div class="state-center">
-      <p class="state-text pulse">Loading renderer...</p>
+      <p class="state-text pulse">{$t('page.loadingRenderer')}</p>
     </div>
   {:else if $docStore.loading}
     <div class="state-center">
-      <p class="state-text pulse">Opening file...</p>
+      <p class="state-text pulse">{$t('page.openingFile')}</p>
     </div>
   {:else if $docStore.error}
     <div class="state-center">

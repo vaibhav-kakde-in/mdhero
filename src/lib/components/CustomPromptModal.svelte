@@ -1,6 +1,7 @@
 <script lang="ts">
   import { tick } from "svelte";
   import { aiLookup, assembleUrl, type Provider } from "$lib/stores/aiLookup";
+  import { t, translate } from "$lib/i18n";
 
   let {
     visible = $bindable(false),
@@ -72,7 +73,7 @@
       await openUrl(url);
       visible = false;
     } catch (err) {
-      error = err instanceof Error ? err.message : "Failed to open URL";
+      error = err instanceof Error ? err.message : translate("customPrompt.errOpenUrl");
       sending = false;
     }
   }
@@ -83,8 +84,8 @@
   <div class="dialog-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown}>
     <div class="dialog">
       <div class="dialog-header">
-        <h2 class="dialog-title">Custom AI Prompt</h2>
-        <button onclick={() => (visible = false)} class="dialog-close" aria-label="Close">
+        <h2 class="dialog-title">{$t('customPrompt.title')}</h2>
+        <button onclick={() => (visible = false)} class="dialog-close" aria-label={$t('common.close')}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
             <line x1="3" y1="3" x2="11" y2="11"/><line x1="11" y1="3" x2="3" y2="11"/>
           </svg>
@@ -94,34 +95,34 @@
       <div class="dialog-body">
         {#if hasSelection}
           <div class="field">
-            <div class="field-label">Selected text</div>
+            <div class="field-label">{$t('customPrompt.selectedText')}</div>
             <div class="selection-box" aria-readonly="true">{selection}</div>
           </div>
         {:else}
-          <p class="no-selection-hint">No selection — your prompt will be sent as-is.</p>
+          <p class="no-selection-hint">{$t('customPrompt.noSelection')}</p>
         {/if}
 
         <div class="field">
           <label class="field-label" for="custom-prompt-text">
-            Your prompt
-            {#if hasSelection}<span class="field-hint">(the selection above will be appended)</span>{/if}
+            {$t('customPrompt.yourPrompt')}
+            {#if hasSelection}<span class="field-hint">{$t('customPrompt.selectionAppended')}</span>{/if}
           </label>
           <textarea
             id="custom-prompt-text"
             bind:this={promptEl}
             bind:value={promptText}
             placeholder={hasSelection
-              ? "Give me a concise background on this company:"
-              : "Type your prompt…"}
+              ? $t('customPrompt.placeholderWithSelection')
+              : $t('customPrompt.placeholderEmpty')}
             class="prompt-input"
             rows="4"
           ></textarea>
         </div>
 
         <div class="field field-row">
-          <label class="field-label" for="custom-prompt-provider">Provider</label>
+          <label class="field-label" for="custom-prompt-provider">{$t('customPrompt.provider')}</label>
           {#if providers.length === 0}
-            <div class="no-providers">No providers configured — add one in Settings.</div>
+            <div class="no-providers">{$t('customPrompt.noProviders')}</div>
           {:else}
             <select
               id="custom-prompt-provider"
@@ -142,10 +143,10 @@
 
       <div class="dialog-footer">
         <button onclick={() => (visible = false)} class="btn btn-secondary">
-          Cancel
+          {$t('common.cancel')}
         </button>
         <button onclick={handleSend} disabled={!canSend} class="btn btn-primary">
-          {sending ? "Opening…" : "Send →"}
+          {sending ? $t('customPrompt.opening') : $t('customPrompt.send')}
         </button>
       </div>
     </div>

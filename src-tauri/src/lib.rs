@@ -90,6 +90,7 @@ pub fn run() {
             watcher::unwatch_file,
             watcher::stop_watching,
             get_opened_files,
+            menu::set_menu_language,
         ])
         .setup(|app| {
             let handle = app.handle().clone();

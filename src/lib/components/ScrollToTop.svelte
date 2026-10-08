@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { document as docStore } from "$lib/stores/document";
+  import { t } from "$lib/i18n";
 
   let visible = $state(false);
 
@@ -18,7 +19,7 @@
 </script>
 
 {#if visible && $docStore.renderedHtml}
-  <button class="scroll-top" onclick={scrollToTop} title="Scroll to top (gg)">
+  <button class="scroll-top" onclick={scrollToTop} title={$t('scrollToTop.title')}>
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="4,10 8,6 12,10"/></svg>
   </button>
 {/if}
