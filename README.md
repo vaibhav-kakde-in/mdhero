@@ -55,6 +55,7 @@ Markdown is where developers, writers, and AI live today — READMEs, Claude Cod
 
 ### Editing (v0.2.0)
 - **Lightweight in-app editor** — `Cmd+E` flips any local file into edit mode
+- **Markdown highlighting** — headings, emphasis, links, lists, quotes and code are colored as you type, in light and dark (Settings › Editor to turn it off)
 - **Save with `Cmd+S`** — writes back to disk; the file watcher knows it was you and skips the reload
 - **Stays where you were** — source-line scroll sync keeps your position across viewer ↔ raw ↔ edit
 - **Dirty indicator** — `•` in the tab title and toolbar when you have unsaved changes

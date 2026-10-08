@@ -8,6 +8,8 @@ export interface ReaderSettings {
   widthMode: "comfortable" | "wide";
   closeOnEscape: boolean;
   showLineNumbers: boolean;
+  /** Color the Markdown syntax in the editor (#73). */
+  syntaxHighlighting: boolean;
   /** Auto-open `marp: true` documents as a slideshow (#44). */
   autoPresentMarp: boolean;
   /** Reopen the files that were open when the app last ran (#72). */
@@ -50,6 +52,7 @@ function loadSettings(): ReaderSettings {
     widthMode: "comfortable",
     closeOnEscape: true,
     showLineNumbers: true,
+    syntaxHighlighting: true,
     autoPresentMarp: true,
     restoreTabsOnLaunch: true,
     tocWidth: DEFAULT_TOC_WIDTH,
@@ -68,6 +71,11 @@ function loadSettings(): ReaderSettings {
         maxWidth: clamp(storedMaxWidth, MIN_MAX_WIDTH, MAX_MAX_WIDTH),
         widthMode: parsed.widthMode === "wide" ? "wide" : "comfortable",
         tocWidth: clampTocWidth(parsed.tocWidth),
+        // Read as-is, a hand-edited "false" is truthy and would leave it on.
+        syntaxHighlighting:
+          typeof parsed.syntaxHighlighting === "boolean"
+            ? parsed.syntaxHighlighting
+            : defaults.syntaxHighlighting,
       };
     }
   } catch {}

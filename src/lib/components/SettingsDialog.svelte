@@ -87,6 +87,19 @@
               class="setting-switch"
             />
           </label>
+
+          <label class="setting-row">
+            <div class="setting-text">
+              <span class="setting-label">Syntax highlighting</span>
+              <span class="setting-hint">Color headings, links, emphasis, lists and code in the editor.</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={$settings.syntaxHighlighting}
+              onchange={(e) => settings.update((s) => ({ ...s, syntaxHighlighting: e.currentTarget.checked }))}
+              class="setting-switch"
+            />
+          </label>
         </section>
 
         <section class="settings-section">

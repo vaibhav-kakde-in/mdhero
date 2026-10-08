@@ -3,6 +3,8 @@
   import { searchQuery, searchActiveIndex, searchTotal } from "$lib/stores/search";
   import { findMatches, buildHighlightHtml } from "$lib/utils/text-search";
   import { gutterHtml as buildGutterHtml, gutterWidth as buildGutterWidth, lineCount as countLines } from "$lib/utils/line-gutter";
+  import { highlightMarkdownLines } from "$lib/utils/markdown-highlight";
+  import { patchLines } from "$lib/utils/line-patch";
 
   let {
     value,
@@ -11,6 +13,7 @@
     lineHeight = 1.6,
     maxWidth = "720px",
     showLineNumbers = false,
+    syntaxHighlighting = false,
     split = false,
   }: {
     value: string;
@@ -19,11 +22,13 @@
     lineHeight?: number;
     maxWidth?: string;
     showLineNumbers?: boolean;
+    syntaxHighlighting?: boolean;
     split?: boolean;
   } = $props();
 
   let textareaEl: HTMLTextAreaElement | undefined = $state();
   let backdropEl: HTMLDivElement | undefined = $state();
+  let syntaxEl: HTMLDivElement | undefined = $state();
   let gutterEl: HTMLDivElement | undefined = $state();
 
   // Local mirror so cursor doesn't jump on parent state updates
@@ -71,10 +76,43 @@
     searchTotal.set($searchQuery ? matches.length : 0);
   });
 
+  // --- Syntax highlighting (#73) ----------------------------------------------
+  // Same mirror technique as the find backdrop: a <textarea> cannot color parts
+  // of its text, so the colored copy is painted in a layer just behind it and
+  // the textarea's own text is made transparent, leaving its caret and
+  // selection on top. The layer sits above the find backdrop so the colored
+  // text shows over the match backgrounds.
+  //
+  // One element per line, patched in place (see line-patch.ts) rather than
+  // re-rendered whole, so a keystroke only redraws the lines it changed. No
+  // trailing newline needed here, unlike the find backdrop: a final empty line
+  // gets its own (one-line-tall) element, just as the textarea keeps it.
+  let syntaxLines: string[] = [];
+  let syntaxLinesEl: HTMLDivElement | undefined;
+
+  $effect(() => {
+    const el = syntaxEl;
+    if (!el) return;
+    const next = highlightMarkdownLines(localValue);
+    // A remounted layer (setting switched off and on) starts out empty.
+    const prev = el === syntaxLinesEl ? syntaxLines : [];
+    patchLines(el, prev, next, "sl");
+    syntaxLines = next;
+    syntaxLinesEl = el;
+    // Line the layer up once it has rendered: when it mounts on a scrolled
+    // textarea, and after an edit that grew the text past the height the
+    // layer could scroll to before.
+    syncBackdropScroll();
+  });
+
   function syncBackdropScroll() {
     if (backdropEl && textareaEl) {
       backdropEl.scrollTop = textareaEl.scrollTop;
       backdropEl.scrollLeft = textareaEl.scrollLeft;
+    }
+    if (syntaxEl && textareaEl) {
+      syntaxEl.scrollTop = textareaEl.scrollTop;
+      syntaxEl.scrollLeft = textareaEl.scrollLeft;
     }
     if (gutterEl && textareaEl) {
       gutterEl.scrollTop = textareaEl.scrollTop;
@@ -170,6 +208,17 @@
       aria-hidden="true"
       style="font-size: {fontSize}px; line-height: {lineHeight};"
     >{@html highlightHtml}</div>
+    {#if syntaxHighlighting}
+      <!-- Syntax layer (#73): the visible, colored copy of the text, one
+           div.sl per line, filled by the effect above. -->
+      <div
+        bind:this={syntaxEl}
+        class="editor-backdrop editor-syntax"
+        class:with-gutter={showLineNumbers}
+        aria-hidden="true"
+        style="font-size: {fontSize}px; line-height: {lineHeight};"
+      ></div>
+    {/if}
     <textarea
       bind:this={textareaEl}
       bind:value={localValue}
@@ -181,6 +230,7 @@
       onscroll={syncBackdropScroll}
       class="editor"
       class:with-gutter={showLineNumbers}
+      class:highlighted={syntaxHighlighting}
       style="font-size: {fontSize}px; line-height: {lineHeight};"
       spellcheck="false"
       autocomplete="off"
@@ -274,12 +324,94 @@
     color: #aeaeb2;
   }
 
+  /* With syntax highlighting the text is drawn by the syntax layer below, so
+     the textarea only shows its caret and a see-through selection. The caret
+     color must be set explicitly: it defaults to the (now transparent) text
+     color. */
+  .editor.highlighted {
+    color: transparent;
+    caret-color: #1c1c1e;
+  }
+
+  /* Repeats `color: transparent`: the dark `.editor` rule above is more
+     specific than `.editor.highlighted` and would paint the plain text back
+     over the colored layer. */
+  :global(html.dark) .editor.highlighted {
+    color: transparent;
+    caret-color: #e5e5e7;
+  }
+
+  .editor.highlighted::selection {
+    color: transparent;
+    background: rgba(0, 122, 255, 0.22);
+  }
+
+  :global(html.dark) .editor.highlighted::selection {
+    background: rgba(10, 132, 255, 0.35);
+  }
+
   .editor-backdrop {
     color: transparent;
     pointer-events: none;
     user-select: none;
     z-index: 0;
   }
+
+  /* Same base color as the plain textarea. */
+  .editor-backdrop.editor-syntax {
+    color: #1c1c1e;
+  }
+
+  :global(html.dark) .editor-backdrop.editor-syntax {
+    color: #e5e5e7;
+  }
+
+  /* An empty line's block would collapse to zero height and pull every line
+     below it up; a zero-width space keeps it one line tall, as the gutter
+     does, without adding a character to the text. */
+  .editor-syntax :global(.sl:empty)::before {
+    content: "\200b";
+  }
+
+  /* Token colors for the spans markdown-highlight.ts emits, light then dark,
+     drawn from the GitHub palette the code blocks in the preview already use.
+     Color, weight, style and decoration only: anything that changes a glyph's
+     width (size, letter spacing, padding) would make this layer wrap
+     differently from the textarea and pull the text away from the caret. No
+     backgrounds either, or they would hide the find matches painted below. */
+  .editor-syntax :global(.md-mark) { color: #8c959f; }
+  .editor-syntax :global(.md-heading) { color: #0550ae; font-weight: 700; }
+  .editor-syntax :global(.md-strong) { font-weight: 700; }
+  .editor-syntax :global(.md-em) { font-style: italic; }
+  .editor-syntax :global(.md-strike) { color: #6e7781; text-decoration: line-through; }
+  .editor-syntax :global(.md-code) { color: #8250df; }
+  .editor-syntax :global(.md-math) { color: #116329; }
+  .editor-syntax :global(.md-link) {
+    color: #0969da;
+    text-decoration: underline;
+    text-decoration-color: rgba(9, 105, 218, 0.35);
+    text-underline-offset: 2px;
+  }
+  .editor-syntax :global(.md-url) { color: #6e7781; }
+  .editor-syntax :global(.md-list) { color: #bc4c00; }
+  .editor-syntax :global(.md-quote) { color: #57606a; }
+  .editor-syntax :global(.md-meta) { color: #57606a; }
+  .editor-syntax :global(.md-key) { color: #953800; }
+
+  :global(html.dark) .editor-syntax :global(.md-mark) { color: #6e7681; }
+  :global(html.dark) .editor-syntax :global(.md-heading) { color: #79c0ff; }
+  :global(html.dark) .editor-syntax :global(.md-strike) { color: #8b949e; }
+  :global(html.dark) .editor-syntax :global(.md-code) { color: #d2a8ff; }
+  :global(html.dark) .editor-syntax :global(.md-math) { color: #7ee787; }
+  :global(html.dark) .editor-syntax :global(.md-link) {
+    color: #58a6ff;
+    text-decoration-color: rgba(88, 166, 255, 0.4);
+  }
+  :global(html.dark) .editor-syntax :global(.md-url) { color: #8b949e; }
+  :global(html.dark) .editor-syntax :global(.md-list) { color: #ffa657; }
+  :global(html.dark) .editor-syntax :global(.md-quote) { color: #9198a1; }
+  :global(html.dark) .editor-syntax :global(.md-meta) { color: #9198a1; }
+  :global(html.dark) .editor-syntax :global(.md-key) { color: #ffa657; }
 
   /* With the gutter on, both text layers shift right by the gutter width so
      their text starts after the numbers and still wraps at a matching width. */
