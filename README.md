@@ -141,6 +141,7 @@ Or build from source (see below).
 | `Cmd+U` | Toggle raw markdown view |
 | `Cmd+Shift+F` | Zen mode |
 | `Cmd+=` / `Cmd+-` | Zoom in / out |
+| `Ctrl` + mouse wheel | Zoom in / out (`Ctrl` on every platform) |
 | `Cmd+0` | Reset zoom |
 | `j` / `k` | Scroll down / up |
 | `gg` / `G` | Jump to top / bottom |

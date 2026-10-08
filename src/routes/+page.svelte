@@ -17,7 +17,7 @@
   } from "$lib/tauri/files";
   import { showToast } from "$lib/stores/toast";
   import { basename } from "$lib/utils/path";
-  import { settings, getContentMaxWidth } from "$lib/stores/settings";
+  import { settings, getContentMaxWidth, stepFontSize, DEFAULT_FONT_SIZE } from "$lib/stores/settings";
   import { initFileWatcher, stopFileWatcher } from "$lib/tauri/watcher";
   import { restoreSession } from "$lib/tauri/session";
   import { attachSplitSync, type SplitSync } from "$lib/utils/split-sync";
@@ -52,6 +52,7 @@
   import { get } from "svelte/store";
   import { getCurrentSourceLine, scrollToSourceLine, type ViewMode } from "$lib/utils/scroll-sync";
   import { gutterHtml, gutterWidth, lineCount } from "$lib/utils/line-gutter";
+  import { createWheelZoom } from "$lib/utils/wheel-zoom";
   import { saveProgress, getProgress } from "$lib/stores/readingProgress";
 
   let rendererReady = $state(false);
@@ -677,6 +678,8 @@
     // Listen for keyboard shortcuts and scroll for reading progress
     window.addEventListener("keydown", handleKeydown);
     window.addEventListener("keyup", handleKeyup);
+    // Not passive: the page must not scroll under a Ctrl + wheel zoom.
+    window.addEventListener("wheel", handleWheel, { passive: false });
     // Safety net: if focus leaves while j/k is held, keyup may never fire — stop the loop.
     window.addEventListener("blur", stopScroll);
     window.addEventListener("scroll", handleScrollForProgress, { passive: true });
@@ -724,6 +727,7 @@
       stopFileWatcher();
       window.removeEventListener("keydown", handleKeydown);
       window.removeEventListener("keyup", handleKeyup);
+      window.removeEventListener("wheel", handleWheel);
       window.removeEventListener("blur", stopScroll);
       stopScroll();
       window.removeEventListener("scroll", handleScrollForProgress);
@@ -851,6 +855,19 @@
     }
   }
 
+  // Ctrl + mouse wheel zooms like Cmd/Ctrl+= and Cmd/Ctrl+-. Ctrl on every
+  // platform, as in browsers; a touchpad pinch arrives the same way.
+  const wheelZoomStep = createWheelZoom();
+
+  function handleWheel(e: WheelEvent) {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const step = wheelZoomStep(e);
+    if (step !== 0) {
+      settings.update((s) => ({ ...s, fontSize: stepFontSize(s.fontSize, step) }));
+    }
+  }
+
   function handleKeydown(e: KeyboardEvent) {
     // Cmd+1-9 tab switching
     if ((e.metaKey || e.ctrlKey) && e.key >= "1" && e.key <= "9") {
@@ -886,21 +903,21 @@
     // Cmd+Plus / Cmd+= zoom in (works on both macOS and Windows)
     if ((e.metaKey || e.ctrlKey) && (e.key === "=" || e.key === "+")) {
       e.preventDefault();
-      settings.update((s) => ({ ...s, fontSize: Math.min(s.fontSize + 1, 32) }));
+      settings.update((s) => ({ ...s, fontSize: stepFontSize(s.fontSize, 1) }));
       return;
     }
 
     // Cmd+Minus zoom out
     if ((e.metaKey || e.ctrlKey) && e.key === "-") {
       e.preventDefault();
-      settings.update((s) => ({ ...s, fontSize: Math.max(s.fontSize - 1, 10) }));
+      settings.update((s) => ({ ...s, fontSize: stepFontSize(s.fontSize, -1) }));
       return;
     }
 
     // Cmd+0 reset zoom
     if ((e.metaKey || e.ctrlKey) && e.key === "0") {
       e.preventDefault();
-      settings.update((s) => ({ ...s, fontSize: 17 }));
+      settings.update((s) => ({ ...s, fontSize: DEFAULT_FONT_SIZE }));
       return;
     }
 

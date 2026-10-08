@@ -5,7 +5,7 @@
   import { openFileDialog, openFile, newDocument } from "../tauri/files";
   import { recentFiles, clearRecentFiles } from "../stores/recents";
   import { pinnedFolders } from "../stores/pinned";
-  import { settings } from "../stores/settings";
+  import { settings, stepFontSize, DEFAULT_FONT_SIZE } from "../stores/settings";
   import UpdateBanner from "./UpdateBanner.svelte";
   import { basename, shortenHomePath } from "$lib/utils/path";
   import brandLogo from "$lib/assets/mdhero-icon.png";
@@ -94,7 +94,7 @@
   }
 
   // Scale home screen UI based on font size setting (17px = 1.0)
-  let scale = $derived($settings.fontSize / 17);
+  let scale = $derived($settings.fontSize / DEFAULT_FONT_SIZE);
 </script>
 
 <div class="empty-root" style="zoom: {scale};">
@@ -233,11 +233,11 @@
       {/if}
     </div>
     <div class="zoom-controls">
-      <button class="zoom-btn" onclick={() => settings.update((s) => ({ ...s, fontSize: Math.max(s.fontSize - 1, 10) }))} title="Zoom out">
+      <button class="zoom-btn" onclick={() => settings.update((s) => ({ ...s, fontSize: stepFontSize(s.fontSize, -1) }))} title="Zoom out">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="2" y1="6" x2="10" y2="6"/></svg>
       </button>
       <span class="zoom-label">{$settings.fontSize}px</span>
-      <button class="zoom-btn" onclick={() => settings.update((s) => ({ ...s, fontSize: Math.min(s.fontSize + 1, 32) }))} title="Zoom in">
+      <button class="zoom-btn" onclick={() => settings.update((s) => ({ ...s, fontSize: stepFontSize(s.fontSize, 1) }))} title="Zoom in">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg>
       </button>
     </div>

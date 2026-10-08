@@ -17,6 +17,13 @@ export interface ReaderSettings {
 }
 
 const STORAGE_KEY = "mdhero-settings";
+
+/** Text-size bounds shared by every zoom control: the keyboard shortcuts, the
+ *  home-screen buttons and Ctrl + mouse wheel. */
+export const DEFAULT_FONT_SIZE = 17;
+export const MIN_FONT_SIZE = 10;
+export const MAX_FONT_SIZE = 32;
+
 const DEFAULT_MAX_WIDTH = 720;
 const MIN_MAX_WIDTH = 560;
 const MAX_MAX_WIDTH = 3840;
@@ -41,7 +48,7 @@ function clamp(value: number, min: number, max: number): number {
 
 function loadSettings(): ReaderSettings {
   const defaults: ReaderSettings = {
-    fontSize: 17,
+    fontSize: DEFAULT_FONT_SIZE,
     lineHeight: 1.7,
     fontFamily: "sans",
     maxWidth: DEFAULT_MAX_WIDTH,
@@ -96,6 +103,11 @@ function createSettingsStore() {
 }
 
 export const settings = createSettingsStore();
+
+/** `size` moved by `steps` px, kept within the zoom bounds. */
+export function stepFontSize(size: number, steps: number): number {
+  return clamp(size + steps, MIN_FONT_SIZE, MAX_FONT_SIZE);
+}
 
 /** Clamp an arbitrary stored or dragged value to a usable sidebar width (#108).
  *  Non-numeric input (a hand-edited localStorage entry, a NaN from a pointer
