@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { open } from "@tauri-apps/plugin-dialog";
 
 const invoke = vi.fn();
 const documentSet = vi.fn();
 const updateTabContent = vi.fn();
-const addTab = vi.fn(() => "tab-1");
+const addTab = vi.fn((_path: string) => "tab-1");
 const rebindPath = vi.fn();
 let activeTab: { filePath: string } | null = null;
 
@@ -19,18 +20,50 @@ vi.mock("../../src/lib/stores/tabs", () => ({
   tabStore: { updateTabContent, addTab, rebindPath, setEditing: vi.fn(), getActiveTab: () => activeTab },
 }));
 
-const { reloadFile, openFile, saveAsNewDocument, watchFile, unwatchFile } = await import("../../src/lib/tauri/files");
+const { reloadFile, openFile, openFileDialog, saveAsNewDocument, watchFile, unwatchFile } = await import("../../src/lib/tauri/files");
 
 const calls = (cmd: string) => invoke.mock.calls.filter((c) => c[0] === cmd).map((c) => c[1]);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(open).mockReset();
   activeTab = null;
   invoke.mockImplementation(async (cmd: string, args: any) => {
     if (cmd === "resolve_path") return args.path;
     if (cmd === "read_markdown_file") return "# from disk";
     if (cmd === "path_exists") return true;
     return undefined;
+  });
+});
+
+describe("openFileDialog", () => {
+  it("enables multi-select and opens every selected file", async () => {
+    vi.mocked(open).mockResolvedValue(["/docs/a.md", "/docs/b.md"]);
+
+    await openFileDialog();
+
+    expect(open).toHaveBeenCalledWith({
+      multiple: true,
+      filters: [{ name: "Markdown", extensions: ["md", "markdown", "mdown", "mkd", "txt"] }],
+    });
+    expect(addTab.mock.calls.map(([path]) => path)).toEqual(["/docs/a.md", "/docs/b.md"]);
+  });
+
+  it("still opens one path returned as a string", async () => {
+    vi.mocked(open).mockResolvedValue("/docs/a.md" as never);
+
+    await openFileDialog();
+
+    expect(addTab.mock.calls.map(([path]) => path)).toEqual(["/docs/a.md"]);
+  });
+
+  it("does nothing when the dialog is cancelled", async () => {
+    vi.mocked(open).mockResolvedValue(null);
+
+    await openFileDialog();
+
+    expect(addTab).not.toHaveBeenCalled();
+    expect(documentSet).not.toHaveBeenCalled();
   });
 });
 
