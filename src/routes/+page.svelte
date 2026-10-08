@@ -52,6 +52,7 @@
   import { get } from "svelte/store";
   import { getCurrentSourceLine, scrollToSourceLine, type ViewMode } from "$lib/utils/scroll-sync";
   import { gutterHtml, gutterWidth, lineCount } from "$lib/utils/line-gutter";
+  import { chromeTop, sideTabsWidth, SIDE_TABS_CHROME, TOP_TABS_CHROME } from "$lib/utils/layout";
   import { saveProgress, getProgress } from "$lib/stores/readingProgress";
 
   let rendererReady = $state(false);
@@ -194,6 +195,16 @@
   // modes, which would leave the variable stale for anything still reading it.
   $effect(() => {
     document.documentElement.style.setProperty("--toc-w", `${$settings.tocWidth}px`);
+  });
+
+  // Same for the side tabs panel, and the height of the chrome above the
+  // document, which loses the tab row when the tabs move to the side (see
+  // utils/layout.ts). Zen mode hides the tabs, so it takes the panel away too.
+  $effect(() => {
+    const width = zenMode ? 0 : sideTabsWidth($settings);
+    const root = document.documentElement;
+    root.style.setProperty("--tabs-w", `${width}px`);
+    root.style.setProperty("--chrome-top", `${width > 0 ? SIDE_TABS_CHROME : TOP_TABS_CHROME}px`);
   });
 
   // Live-render the editor content into the split preview pane, debounced so
@@ -812,7 +823,7 @@
   function jumpToHeading(direction: "prev" | "next") {
     const headings = document.querySelectorAll("article h1[id], article h2[id], article h3[id], article h4[id], article h5[id], article h6[id]");
     if (headings.length === 0) return;
-    const offset = 80;
+    const offset = chromeTop() + 5;
     const scrollY = window.scrollY + offset;
 
     if (direction === "next") {
@@ -1171,6 +1182,7 @@
   <AboutDialog bind:visible={aboutVisible} />
   <CustomPromptModal bind:visible={customPromptVisible} selection={customPromptSelection} />
 
+  <div class="doc-area">
   {#if !rendererReady}
     <div class="state-center">
       <p class="state-text pulse">Loading renderer...</p>
@@ -1270,6 +1282,7 @@
   {:else}
     <EmptyState onOpenUrl={() => { pasteDefaultMode = "url"; pasteVisible = true; }} />
   {/if}
+  </div>
   <UpdateToast />
   <Toast />
 </div>
@@ -1327,12 +1340,14 @@
   }
 
   /* Split preview pane (#19): fixed right half, mirroring the editor's fixed
-     left half. Scrolls independently. Sits below the toolbar+tabbar (75px). */
+     left half. Scrolls independently. Sits below the toolbar and top tabs
+     (`--chrome-top`, see utils/layout.ts). */
   .split-preview {
     position: fixed;
-    top: 75px;
+    top: var(--chrome-top, 88px);
     right: 0;
-    left: 50%;
+    /* The right half of what the side tabs panel leaves. */
+    left: calc(var(--tabs-w, 0px) + (100% - var(--tabs-w, 0px)) / 2);
     bottom: 0;
     overflow-y: auto;
     padding-bottom: 4rem;
@@ -1357,6 +1372,23 @@
   }
 
   :global(html.toc-resizing) .content-main {
+    transition: none;
+  }
+
+  /* Everything in the document column clears the side tabs panel; 0 wide
+     when the tabs are on top. The fixed parts (editor, split preview, ToC,
+     status bar) offset themselves by the same variable. */
+  .doc-area {
+    padding-left: var(--tabs-w, 0px);
+    transition: padding-left 0.15s ease;
+  }
+
+  :global(html.tabs-resizing) {
+    cursor: col-resize;
+    user-select: none;
+  }
+
+  :global(html.tabs-resizing) .doc-area {
     transition: none;
   }
 

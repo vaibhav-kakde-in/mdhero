@@ -192,11 +192,12 @@
 <style>
   .editor-wrap {
     /* Fixed positioning so the editor cannot contribute to window scroll height.
-       Sits below the sticky toolbar (~37px) + tabbar (~38px) and fills the
+       Sits below the sticky toolbar and top tabs (`--chrome-top`), right of
+       the side tabs panel when there is one (`--tabs-w`), and fills the
        remaining viewport. This guarantees a single scrollbar (the textarea's). */
     position: fixed;
-    top: 75px;
-    left: 0;
+    top: var(--chrome-top, 88px);
+    left: var(--tabs-w, 0px);
     right: 0;
     bottom: 0;
     display: flex;
@@ -212,7 +213,7 @@
   /* Split mode (#19): editor occupies the left half; the preview pane (in
      +page) fills the right half. A divider marks the seam. */
   .editor-wrap.split {
-    right: 50%;
+    right: calc((100% - var(--tabs-w, 0px)) / 2);
     border-right: 1px solid #e5e5e5;
   }
 

@@ -60,6 +60,19 @@
 
           <label class="setting-row">
             <div class="setting-text">
+              <span class="setting-label">Tabs on the side</span>
+              <span class="setting-hint">Show open files in a resizable panel on the left instead of a row across the top.</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={$settings.tabsPosition === "side"}
+              onchange={(e) => settings.update((s) => ({ ...s, tabsPosition: e.currentTarget.checked ? "side" : "top" }))}
+              class="setting-switch"
+            />
+          </label>
+
+          <label class="setting-row">
+            <div class="setting-text">
               <span class="setting-label">Auto-present Marp decks</span>
               <span class="setting-hint">Open documents with <code>marp: true</code> frontmatter as a slideshow.</span>
             </div>

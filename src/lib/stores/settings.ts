@@ -14,6 +14,10 @@ export interface ReaderSettings {
   restoreTabsOnLaunch: boolean;
   /** Width of the table-of-contents sidebar in px (#108). */
   tocWidth: number;
+  /** Tabs in a row across the top, or in a resizable panel on the left. */
+  tabsPosition: "top" | "side";
+  /** Width of the side tabs panel in px. */
+  tabsWidth: number;
 }
 
 const STORAGE_KEY = "mdhero-settings";
@@ -35,6 +39,21 @@ export const MAX_TOC_WIDTH = 520;
  *  own fix. */
 export const MIN_DOCUMENT_WIDTH = 240;
 
+/** Side tabs panel width bounds. The minimum still fits a typical file name;
+ *  past the maximum the room is better left to the document. */
+export const DEFAULT_TABS_WIDTH = 220;
+export const MIN_TABS_WIDTH = 160;
+export const MAX_TABS_WIDTH = 400;
+
+interface PanelBounds {
+  min: number;
+  max: number;
+  fallback: number;
+}
+
+const TOC_BOUNDS: PanelBounds = { min: MIN_TOC_WIDTH, max: MAX_TOC_WIDTH, fallback: DEFAULT_TOC_WIDTH };
+const TABS_BOUNDS: PanelBounds = { min: MIN_TABS_WIDTH, max: MAX_TABS_WIDTH, fallback: DEFAULT_TABS_WIDTH };
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
@@ -51,6 +70,8 @@ function loadSettings(): ReaderSettings {
     autoPresentMarp: true,
     restoreTabsOnLaunch: true,
     tocWidth: DEFAULT_TOC_WIDTH,
+    tabsPosition: "top",
+    tabsWidth: DEFAULT_TABS_WIDTH,
   };
 
   if (typeof localStorage === "undefined") return defaults;
@@ -65,6 +86,8 @@ function loadSettings(): ReaderSettings {
         maxWidth: clamp(storedMaxWidth, MIN_MAX_WIDTH, MAX_MAX_WIDTH),
         widthMode: parsed.widthMode === "wide" ? "wide" : "comfortable",
         tocWidth: clampTocWidth(parsed.tocWidth),
+        tabsPosition: parsed.tabsPosition === "side" ? "side" : "top",
+        tabsWidth: clampTabsWidth(parsed.tabsWidth),
       };
     }
   } catch {}
@@ -104,15 +127,36 @@ export const settings = createSettingsStore();
  *  less than MIN_TOC_WIDTH: on a very narrow window a cramped sidebar still
  *  beats one that cannot be grabbed. */
 export function maxTocWidthFor(viewportWidth: number): number {
-  return Math.max(
-    MIN_TOC_WIDTH,
-    Math.min(MAX_TOC_WIDTH, Math.round(viewportWidth) - MIN_DOCUMENT_WIDTH),
-  );
+  return maxPanelWidthFor(TOC_BOUNDS, viewportWidth);
 }
 
 /** Pass `viewportWidth` to bound the result by the window as well as by
- *  MAX_TOC_WIDTH. Omitted, only the static bounds apply. */
+ *  MAX_TOC_WIDTH. Omitted, only the static bounds apply. With side tabs open,
+ *  callers pass the window width minus the tabs panel: the room the ToC and
+ *  the document share. */
 export function clampTocWidth(value: unknown, viewportWidth?: number): number {
+  return clampPanelWidth(TOC_BOUNDS, value, viewportWidth);
+}
+
+/** The widest the side tabs panel may be, given the width it shares with the
+ *  document (the window minus the ToC, when that is showing). */
+export function maxTabsWidthFor(availableWidth: number): number {
+  return maxPanelWidthFor(TABS_BOUNDS, availableWidth);
+}
+
+/** Same rules as clampTocWidth, for the side tabs panel. */
+export function clampTabsWidth(value: unknown, availableWidth?: number): number {
+  return clampPanelWidth(TABS_BOUNDS, value, availableWidth);
+}
+
+function maxPanelWidthFor(bounds: PanelBounds, availableWidth: number): number {
+  return Math.max(
+    bounds.min,
+    Math.min(bounds.max, Math.round(availableWidth) - MIN_DOCUMENT_WIDTH),
+  );
+}
+
+function clampPanelWidth(bounds: PanelBounds, value: unknown, availableWidth?: number): number {
   // Deliberately not a bare Number(): Number(null), Number("") and Number([])
   // are all 0, which is finite, so junk would clamp to the minimum width and
   // look like a deliberate setting instead of falling back to the default.
@@ -122,12 +166,12 @@ export function clampTocWidth(value: unknown, viewportWidth?: number): number {
       : typeof value === "string" && value.trim() !== ""
         ? Number(value)
         : NaN;
-  if (!Number.isFinite(width)) return DEFAULT_TOC_WIDTH;
+  if (!Number.isFinite(width)) return bounds.fallback;
   const ceiling =
-    viewportWidth === undefined || !Number.isFinite(viewportWidth)
-      ? MAX_TOC_WIDTH
-      : maxTocWidthFor(viewportWidth);
-  return clamp(Math.round(width), MIN_TOC_WIDTH, ceiling);
+    availableWidth === undefined || !Number.isFinite(availableWidth)
+      ? bounds.max
+      : maxPanelWidthFor(bounds, availableWidth);
+  return clamp(Math.round(width), bounds.min, ceiling);
 }
 
 export function getContentMaxWidth(value: ReaderSettings): string {

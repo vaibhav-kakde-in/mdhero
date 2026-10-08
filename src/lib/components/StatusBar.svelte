@@ -10,10 +10,22 @@
     const tokens = Math.round(words * 1.33);
     return tokens >= 1000 ? `~${(tokens / 1000).toFixed(1)}k tokens` : `~${tokens} tokens`;
   }
+
+  let visible = $derived(!!$docStore.renderedHtml && $docStore.wordCount > 0);
+  let height = $state(0);
+
+  // Publish the bar's height as `--status-h` so the fixed panels above it (the
+  // table of contents) stop short of it instead of running across it. Unset
+  // while the bar is hidden or unmounted (zen, edit, presenting).
+  $effect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--status-h", `${visible ? height : 0}px`);
+    return () => root.style.removeProperty("--status-h");
+  });
 </script>
 
-{#if $docStore.renderedHtml && $docStore.wordCount > 0}
-  <footer class="status-bar">
+{#if visible}
+  <footer class="status-bar" bind:offsetHeight={height}>
     <span>{$docStore.wordCount.toLocaleString()} words</span>
     <span class="sep">&middot;</span>
     <span>{readingTime($docStore.wordCount)}</span>
@@ -26,7 +38,7 @@
   .status-bar {
     position: fixed;
     bottom: 0;
-    left: 0;
+    left: var(--tabs-w, 0px);
     right: 0;
     z-index: 10;
     display: flex;

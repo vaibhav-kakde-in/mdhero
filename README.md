@@ -62,6 +62,7 @@ Markdown is where developers, writers, and AI live today — READMEs, Claude Cod
 
 ### Navigation
 - **Multiple tabs** — open many files, drag to reorder, Cmd+1–9 to switch
+- **Tabs on the side** — move the tabs into a resizable panel on the left, with a file's folder under its name when another open file has the same name
 - **Table of Contents** — auto-generated sidebar with active heading tracking
 - **Search (Cmd+F)** — with match highlighting
 - **Vim keys** — j/k/gg/G/d/u/[/] for keyboard-first navigation

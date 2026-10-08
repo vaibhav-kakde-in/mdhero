@@ -103,16 +103,25 @@ describe("the viewport ceiling (#111 finding 3)", () => {
  * a weak check, but it is stronger than the nothing that was there before.
  */
 describe("the drag lifecycle", () => {
+  // The handle lives in PanelResizer, shared by the ToC and the side tabs
+  // panel, so the guards read that component.
   const component = readFileSync(
-    resolve(process.cwd(), "src/lib/components/TableOfContents.svelte"),
+    resolve(process.cwd(), "src/lib/components/PanelResizer.svelte"),
     "utf8",
   );
+
+  it("is the resizer both side panels use", () => {
+    for (const panel of ["TableOfContents.svelte", "TabBar.svelte"]) {
+      const source = readFileSync(resolve(process.cwd(), "src/lib/components", panel), "utf8");
+      expect(source).toContain("<PanelResizer");
+    }
+  });
 
   it("cleans up before it commits, so a throw cannot strand the global class", () => {
     const body = component.slice(component.indexOf("function endGesture"));
     const detached = body.indexOf("detach()");
-    const unclassed = body.indexOf('classList.remove("toc-resizing")');
-    const committed = body.indexOf("settings.update");
+    const unclassed = body.indexOf("classList.remove(resizingClass)");
+    const committed = body.indexOf("onCommit(");
     expect(detached).toBeGreaterThan(-1);
     expect(unclassed).toBeGreaterThan(detached);
     expect(committed).toBeGreaterThan(unclassed);
@@ -141,6 +150,6 @@ describe("the drag lifecycle", () => {
   });
 
   it("reports the live width to assistive tech during a drag", () => {
-    expect(component).toMatch(/aria-valuenow=\{liveWidth \?\? \$settings\.tocWidth\}/);
+    expect(component).toMatch(/aria-valuenow=\{liveWidth \?\? width\}/);
   });
 });
