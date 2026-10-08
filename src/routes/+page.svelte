@@ -216,12 +216,15 @@
   });
 
   // Split-mode scroll sync (#74): editor and preview follow each other. Keyed
-  // on the mode string, not the tab object, so a keystroke (which replaces the
-  // tab object) does not re-attach the listeners. Attached after tick so both
-  // panes exist; the first sync lands the preview where the editor already is.
+  // on the mode string and the tab id, not the tab object, so a keystroke
+  // (which replaces the tab object) does not re-attach the listeners, but a
+  // tab switch does: each tab gets its own Editor, hence a new textarea (#129).
+  // Attached after tick so both panes exist; the first sync lands the preview
+  // where the editor already is.
   let splitSync: SplitSync | null = null;
   $effect(() => {
     if (activeEditMode !== "split") return;
+    void $activeTabId;
     let gone = false;
     tick().then(() => {
       if (gone) return;
@@ -1201,16 +1204,21 @@
     {:else if activeTab?.isEditing && splitMode}
       <!-- Split (#19): editor left, live preview right. Both panes are fixed
            half-width; the Editor's own fixed positioning takes the `split` prop
-           to yield the left half. -->
-      <Editor
-        value={activeTab.editContent}
-        onChange={(v) => tabStore.updateEditContent(activeTab!.id, v)}
-        fontSize={$settings.fontSize}
-        lineHeight={$settings.lineHeight}
-        maxWidth="100%"
-        showLineNumbers={$settings.showLineNumbers}
-        split
-      />
+           to yield the left half. Keyed on the tab (#129): the Editor keeps a
+           local copy of the text that it won't overwrite while focused, and a
+           tab switch doesn't blur it, so a reused instance kept showing (and
+           saving into the new tab) the previous tab's text. -->
+      {#key activeTab.id}
+        <Editor
+          value={activeTab.editContent}
+          onChange={(v) => tabStore.updateEditContent(activeTab!.id, v)}
+          fontSize={$settings.fontSize}
+          lineHeight={$settings.lineHeight}
+          maxWidth="100%"
+          showLineNumbers={$settings.showLineNumbers}
+          split
+        />
+      {/key}
       <main class="split-preview">
         <MarkdownRenderer
           html={splitPreviewHtml}
@@ -1219,14 +1227,17 @@
         />
       </main>
     {:else if activeTab?.isEditing}
-      <Editor
-        value={activeTab.editContent}
-        onChange={(v) => tabStore.updateEditContent(activeTab!.id, v)}
-        fontSize={$settings.fontSize}
-        lineHeight={$settings.lineHeight}
-        maxWidth={contentMaxWidth}
-        showLineNumbers={$settings.showLineNumbers}
-      />
+      <!-- One Editor per tab, as in Split above (#129). -->
+      {#key activeTab.id}
+        <Editor
+          value={activeTab.editContent}
+          onChange={(v) => tabStore.updateEditContent(activeTab!.id, v)}
+          fontSize={$settings.fontSize}
+          lineHeight={$settings.lineHeight}
+          maxWidth={contentMaxWidth}
+          showLineNumbers={$settings.showLineNumbers}
+        />
+      {/key}
     {:else if rawMode}
       <main class="content-main" class:toc-spaced={$tocVisible && $tocEntries.length > 0}>
         <div
