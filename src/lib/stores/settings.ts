@@ -14,6 +14,9 @@ export interface ReaderSettings {
   restoreTabsOnLaunch: boolean;
   /** Width of the table-of-contents sidebar in px (#108). */
   tocWidth: number;
+  /** Theme of the rendered page, apart from the interface's: "auto" follows
+   *  the interface. */
+  pageTheme: "auto" | "light" | "dark";
 }
 
 const STORAGE_KEY = "mdhero-settings";
@@ -51,6 +54,7 @@ function loadSettings(): ReaderSettings {
     autoPresentMarp: true,
     restoreTabsOnLaunch: true,
     tocWidth: DEFAULT_TOC_WIDTH,
+    pageTheme: "auto",
   };
 
   if (typeof localStorage === "undefined") return defaults;
@@ -65,6 +69,7 @@ function loadSettings(): ReaderSettings {
         maxWidth: clamp(storedMaxWidth, MIN_MAX_WIDTH, MAX_MAX_WIDTH),
         widthMode: parsed.widthMode === "wide" ? "wide" : "comfortable",
         tocWidth: clampTocWidth(parsed.tocWidth),
+        pageTheme: ["light", "dark"].includes(parsed.pageTheme) ? parsed.pageTheme : "auto",
       };
     }
   } catch {}

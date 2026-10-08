@@ -47,6 +47,7 @@ Markdown is where developers, writers, and AI live today — READMEs, Claude Cod
 
 ### Reading
 - **Beautiful rendering** — Apple-inspired typography, light & dark themes
+- **Page theme** — keep the rendered page light in a dark window, or dark in a light one, with the page button next to the theme button
 - **Syntax highlighting** — 25+ languages via highlight.js
 - **Math & diagrams** — KaTeX for equations, Mermaid for flowcharts
 - **Reader controls** — adjust font, size, line height, width

@@ -5,6 +5,7 @@
   import { settings, fontFamilyMap, getContentMaxWidth } from "$lib/stores/settings";
   import { tocEntries, activeHeadingId, extractToc, isObserverPaused } from "$lib/stores/toc";
   import { aiLookup, setPendingSelection } from "$lib/stores/aiLookup";
+  import { pageDark } from "$lib/stores/theme";
   import mermaid from "mermaid";
   import DOMPurify from "dompurify";
   import { MERMAID_SANITIZE_CONFIG } from "$lib/renderer/mermaid-sanitize";
@@ -42,7 +43,7 @@
   }
 
   function initMermaid() {
-    const isDark = document.documentElement.classList.contains("dark");
+    const isDark = get(pageDark);
     const theme = isDark ? "dark" : "default";
     if (theme === lastMermaidTheme) return;
     lastMermaidTheme = theme;
@@ -80,6 +81,17 @@
     });
   }
 
+  async function drawMermaid(source: string): Promise<string> {
+    const id = `mermaid-${Math.random().toString(36).slice(2, 10)}`;
+    const { svg } = await mermaid.render(id, source);
+    // #security: never trust Mermaid's SVG straight into the DOM. Even in
+    // strict mode this is the last gate before an <svg> from an untrusted
+    // document is live. The allowlist lives in renderer/mermaid-sanitize.ts
+    // because the Quick Look extension renders diagrams too and the two
+    // paths must not drift apart; see the notes there before changing it.
+    return DOMPurify.sanitize(svg, MERMAID_SANITIZE_CONFIG);
+  }
+
   async function renderMermaidBlocks() {
     if (!articleEl) return;
     const blocks = articleEl.querySelectorAll("code.language-mermaid");
@@ -93,18 +105,15 @@
       if (pre.dataset.mermaidRendered) continue;
 
       const source = block.textContent ?? "";
-      const id = `mermaid-${Math.random().toString(36).slice(2, 10)}`;
 
       try {
-        const { svg } = await mermaid.render(id, source);
         const container = document.createElement("div");
         container.className = "mermaid-diagram my-4 flex justify-center";
-        // #security: never trust Mermaid's SVG straight into the DOM. Even in
-        // strict mode this is the last gate before an <svg> from an untrusted
-        // document is live. The allowlist lives in renderer/mermaid-sanitize.ts
-        // because the Quick Look extension renders diagrams too and the two
-        // paths must not drift apart; see the notes there before changing it.
-        container.innerHTML = DOMPurify.sanitize(svg, MERMAID_SANITIZE_CONFIG);
+        container.innerHTML = await drawMermaid(source);
+        // Kept so a page theme change can redraw the diagram: the colours are
+        // baked into the SVG, and the code block it came from is gone.
+        container.dataset.mermaidSource = source;
+        container.dataset.mermaidTheme = lastMermaidTheme;
         pre.replaceWith(container);
       } catch {
         // Leave the code block as-is if Mermaid fails
@@ -112,6 +121,31 @@
       }
     }
   }
+
+  async function redrawMermaidForTheme() {
+    if (!articleEl) return;
+    const diagrams = articleEl.querySelectorAll<HTMLElement>(".mermaid-diagram[data-mermaid-source]");
+    if (diagrams.length === 0) return;
+
+    initMermaid();
+
+    for (const diagram of diagrams) {
+      if (diagram.dataset.mermaidTheme === lastMermaidTheme) continue;
+      try {
+        diagram.innerHTML = await drawMermaid(diagram.dataset.mermaidSource ?? "");
+        diagram.dataset.mermaidTheme = lastMermaidTheme;
+      } catch {
+        // Keep the diagram as drawn in the previous theme.
+      }
+    }
+  }
+
+  // Diagrams follow the page theme, whether it changed on its own or with the
+  // interface's (its "auto" setting).
+  $effect(() => {
+    $pageDark;
+    tick().then(redrawMermaidForTheme);
+  });
 
   function setupTocObserver() {
     if (!articleEl) return;
@@ -311,7 +345,7 @@
 
 <article
   bind:this={articleEl}
-  class="md-content prose prose-slate dark:prose-invert max-w-none mx-auto px-8 py-8 transition-all"
+  class="md-content prose prose-slate page-dark:prose-invert max-w-none mx-auto px-8 py-8 transition-all"
   style="
     max-width: {getContentMaxWidth($settings)};
     font-size: {$settings.fontSize}px;
@@ -327,13 +361,13 @@
     color: #1c1c1e;
   }
 
-  :global(html.dark) .md-content {
+  :global(html.page-dark) .md-content {
     color: #d1d1d6;
     background: transparent;
   }
 
   /* Override any Tailwind prose white backgrounds in dark mode */
-  :global(html.dark) article.prose {
+  :global(html.page-dark) article.prose {
     --tw-prose-body: #d1d1d6;
     --tw-prose-headings: #f2f2f7;
     --tw-prose-bold: #e5e5e7;
@@ -355,7 +389,7 @@
     color: #1c1c1e;
   }
 
-  :global(html.dark) article :global(h1) {
+  :global(html.page-dark) article :global(h1) {
     color: #f2f2f7;
   }
 
@@ -366,7 +400,7 @@
     color: #1c1c1e;
   }
 
-  :global(html.dark) article :global(h2) {
+  :global(html.page-dark) article :global(h2) {
     color: #e5e5e7;
   }
 
@@ -376,7 +410,7 @@
     color: #1c1c1e;
   }
 
-  :global(html.dark) article :global(h3) {
+  :global(html.page-dark) article :global(h3) {
     color: #e5e5e7;
   }
 
@@ -391,7 +425,7 @@
     color: #24292f !important;
   }
 
-  :global(html.dark) article :global(pre) {
+  :global(html.page-dark) article :global(pre) {
     border-color: #2c2c2e;
   }
 
@@ -407,7 +441,7 @@
     color: #0E7490;
   }
 
-  :global(html.dark) article :global(:not(pre) > code) {
+  :global(html.page-dark) article :global(:not(pre) > code) {
     background: #2c2c2e;
     color: #67E8F9;
   }
@@ -435,8 +469,8 @@
     text-align: start;
   }
 
-  :global(html.dark) article :global(th),
-  :global(html.dark) article :global(td) {
+  :global(html.page-dark) article :global(th),
+  :global(html.page-dark) article :global(td) {
     border-color: #3a3a3c;
   }
 
@@ -447,7 +481,7 @@
     color: #636366;
   }
 
-  :global(html.dark) article :global(th) {
+  :global(html.page-dark) article :global(th) {
     background: #1c1c1e;
     color: #aeaeb2;
   }
@@ -460,7 +494,7 @@
     color: #636366;
   }
 
-  :global(html.dark) article :global(blockquote) {
+  :global(html.page-dark) article :global(blockquote) {
     border-left-color: rgba(8, 145, 178, 0.6);
     color: #8e8e93;
   }
@@ -479,7 +513,7 @@
     margin: 2.5em 0;
   }
 
-  :global(html.dark) article :global(hr) {
+  :global(html.page-dark) article :global(hr) {
     border-top-color: #242426;
   }
 
@@ -504,7 +538,7 @@
     text-decoration: underline;
   }
 
-  :global(html.dark) article :global(a) {
+  :global(html.page-dark) article :global(a) {
     color: #22D3EE;
   }
 
@@ -528,7 +562,7 @@
     backdrop-filter: blur(4px);
   }
 
-  :global(html.dark) article :global(.code-copy-btn) {
+  :global(html.page-dark) article :global(.code-copy-btn) {
     background: rgba(44,44,46,0.8);
     border-color: #3a3a3c;
     color: #aeaeb2;
@@ -543,7 +577,7 @@
     color: #1c1c1e;
   }
 
-  :global(html.dark) article :global(.code-copy-btn:hover) {
+  :global(html.page-dark) article :global(.code-copy-btn:hover) {
     background: rgba(58,58,60,0.95);
     color: #e5e5e7;
   }
@@ -568,7 +602,7 @@
     pointer-events: none;
   }
 
-  :global(html.dark .link-tooltip) {
+  :global(html.page-dark .link-tooltip) {
     background: #2c2c2e;
     border-color: #3a3a3c;
     color: #aeaeb2;
@@ -593,62 +627,62 @@
    * `tests/unit/hljs-dark-coverage.test.ts` fails if the two ever drift apart,
    * so a highlight.js upgrade that adds a class can't silently reintroduce this.
    */
-  :global(html.dark) article :global(pre) {
+  :global(html.page-dark) article :global(pre) {
     background: #0d1117 !important;
     color: #c9d1d9 !important;
   }
-  :global(html.dark) article :global(.hljs) { color: #c9d1d9 !important; background: #0d1117 !important; }
+  :global(html.page-dark) article :global(.hljs) { color: #c9d1d9 !important; background: #0d1117 !important; }
 
-  :global(html.dark) article :global(.hljs-doctag),
-  :global(html.dark) article :global(.hljs-keyword),
-  :global(html.dark) article :global(.hljs-meta .hljs-keyword),
-  :global(html.dark) article :global(.hljs-template-tag),
-  :global(html.dark) article :global(.hljs-template-variable),
-  :global(html.dark) article :global(.hljs-type),
-  :global(html.dark) article :global(.hljs-variable.language_) { color: #ff7b72 !important; }
+  :global(html.page-dark) article :global(.hljs-doctag),
+  :global(html.page-dark) article :global(.hljs-keyword),
+  :global(html.page-dark) article :global(.hljs-meta .hljs-keyword),
+  :global(html.page-dark) article :global(.hljs-template-tag),
+  :global(html.page-dark) article :global(.hljs-template-variable),
+  :global(html.page-dark) article :global(.hljs-type),
+  :global(html.page-dark) article :global(.hljs-variable.language_) { color: #ff7b72 !important; }
 
-  :global(html.dark) article :global(.hljs-title),
-  :global(html.dark) article :global(.hljs-title.class_),
-  :global(html.dark) article :global(.hljs-title.class_.inherited__),
-  :global(html.dark) article :global(.hljs-title.function_) { color: #d2a8ff !important; }
+  :global(html.page-dark) article :global(.hljs-title),
+  :global(html.page-dark) article :global(.hljs-title.class_),
+  :global(html.page-dark) article :global(.hljs-title.class_.inherited__),
+  :global(html.page-dark) article :global(.hljs-title.function_) { color: #d2a8ff !important; }
 
-  :global(html.dark) article :global(.hljs-attr),
-  :global(html.dark) article :global(.hljs-attribute),
-  :global(html.dark) article :global(.hljs-literal),
-  :global(html.dark) article :global(.hljs-meta),
-  :global(html.dark) article :global(.hljs-number),
-  :global(html.dark) article :global(.hljs-operator),
-  :global(html.dark) article :global(.hljs-selector-attr),
-  :global(html.dark) article :global(.hljs-selector-class),
-  :global(html.dark) article :global(.hljs-selector-id),
-  :global(html.dark) article :global(.hljs-variable) { color: #79c0ff !important; }
+  :global(html.page-dark) article :global(.hljs-attr),
+  :global(html.page-dark) article :global(.hljs-attribute),
+  :global(html.page-dark) article :global(.hljs-literal),
+  :global(html.page-dark) article :global(.hljs-meta),
+  :global(html.page-dark) article :global(.hljs-number),
+  :global(html.page-dark) article :global(.hljs-operator),
+  :global(html.page-dark) article :global(.hljs-selector-attr),
+  :global(html.page-dark) article :global(.hljs-selector-class),
+  :global(html.page-dark) article :global(.hljs-selector-id),
+  :global(html.page-dark) article :global(.hljs-variable) { color: #79c0ff !important; }
 
-  :global(html.dark) article :global(.hljs-meta .hljs-string),
-  :global(html.dark) article :global(.hljs-regexp),
-  :global(html.dark) article :global(.hljs-string) { color: #a5d6ff !important; }
+  :global(html.page-dark) article :global(.hljs-meta .hljs-string),
+  :global(html.page-dark) article :global(.hljs-regexp),
+  :global(html.page-dark) article :global(.hljs-string) { color: #a5d6ff !important; }
 
-  :global(html.dark) article :global(.hljs-built_in),
-  :global(html.dark) article :global(.hljs-symbol) { color: #ffa657 !important; }
+  :global(html.page-dark) article :global(.hljs-built_in),
+  :global(html.page-dark) article :global(.hljs-symbol) { color: #ffa657 !important; }
 
-  :global(html.dark) article :global(.hljs-code),
-  :global(html.dark) article :global(.hljs-comment),
-  :global(html.dark) article :global(.hljs-formula) { color: #8b949e !important; }
+  :global(html.page-dark) article :global(.hljs-code),
+  :global(html.page-dark) article :global(.hljs-comment),
+  :global(html.page-dark) article :global(.hljs-formula) { color: #8b949e !important; }
 
-  :global(html.dark) article :global(.hljs-name),
-  :global(html.dark) article :global(.hljs-quote),
-  :global(html.dark) article :global(.hljs-selector-pseudo),
-  :global(html.dark) article :global(.hljs-selector-tag) { color: #7ee787 !important; }
+  :global(html.page-dark) article :global(.hljs-name),
+  :global(html.page-dark) article :global(.hljs-quote),
+  :global(html.page-dark) article :global(.hljs-selector-pseudo),
+  :global(html.page-dark) article :global(.hljs-selector-tag) { color: #7ee787 !important; }
 
-  :global(html.dark) article :global(.hljs-subst) { color: #c9d1d9 !important; }
+  :global(html.page-dark) article :global(.hljs-subst) { color: #c9d1d9 !important; }
   /* The one deliberate deviation from upstream github-dark: its #1f6feb scores
    * 4.08:1 against #0d1117, under the 4.5:1 WCAG AA floor the test enforces.
    * #58a6ff is GitHub's own dark-mode blue and scores 7.49:1. */
-  :global(html.dark) article :global(.hljs-section) { color: #58a6ff !important; font-weight: 700; }
-  :global(html.dark) article :global(.hljs-bullet) { color: #f2cc60 !important; }
-  :global(html.dark) article :global(.hljs-emphasis) { color: #c9d1d9 !important; font-style: italic; }
-  :global(html.dark) article :global(.hljs-strong) { color: #c9d1d9 !important; font-weight: 700; }
-  :global(html.dark) article :global(.hljs-addition) { color: #aff5b4 !important; background-color: #033a16 !important; }
-  :global(html.dark) article :global(.hljs-deletion) { color: #ffdcd7 !important; background-color: #67060c !important; }
+  :global(html.page-dark) article :global(.hljs-section) { color: #58a6ff !important; font-weight: 700; }
+  :global(html.page-dark) article :global(.hljs-bullet) { color: #f2cc60 !important; }
+  :global(html.page-dark) article :global(.hljs-emphasis) { color: #c9d1d9 !important; font-style: italic; }
+  :global(html.page-dark) article :global(.hljs-strong) { color: #c9d1d9 !important; font-weight: 700; }
+  :global(html.page-dark) article :global(.hljs-addition) { color: #aff5b4 !important; background-color: #033a16 !important; }
+  :global(html.page-dark) article :global(.hljs-deletion) { color: #ffdcd7 !important; background-color: #67060c !important; }
 
   /* Mermaid */
   article :global(.mermaid-diagram) {

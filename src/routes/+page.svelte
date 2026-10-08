@@ -175,6 +175,12 @@
   const { tabs, activeTabId } = tabStore;
 
   let activeTab = $derived<Tab | null>($tabs.find((t) => t.id === $activeTabId) ?? null);
+  // The rendered page is showing (not the editor, raw view, slides or home),
+  // so the window around it takes the page theme rather than the interface's.
+  let showingRenderedPage = $derived(
+    !!$docStore.filePath && !$docStore.loading && !$docStore.error
+      && !activeTab?.isEditing && !rawMode && !presenting
+  );
   let canEditActive = $derived(
     !!activeTab?.filePath
     && !activeTab.filePath.startsWith("paste://")
@@ -1138,7 +1144,7 @@
 
 </script>
 
-<div class="min-h-screen transition-colors page-root">
+<div class="min-h-screen transition-colors page-root" class:page-canvas={showingRenderedPage}>
   {#if !zenMode}
     <ProgressBar />
     <Toolbar
@@ -1285,6 +1291,18 @@
     color: #e5e5e7;
   }
 
+  /* Around the rendered page, the page theme (stores/theme.ts) rather than
+     the interface's. Prefixed with `html` so it outranks the rule above. */
+  :global(html) .page-root.page-canvas {
+    background: #fafafa;
+    color: #1c1c1e;
+  }
+
+  :global(html.page-dark) .page-root.page-canvas {
+    background: #161618;
+    color: #e5e5e7;
+  }
+
   .state-center {
     display: flex;
     align-items: center;
@@ -1340,7 +1358,8 @@
     background: #fafafa;
   }
 
-  :global(html.dark) .split-preview {
+  /* The preview is the rendered page, so it takes the page theme. */
+  :global(html.page-dark) .split-preview {
     background: #161618;
   }
 
