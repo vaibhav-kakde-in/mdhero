@@ -32,6 +32,12 @@ tauri-plugin-window-state = "2"
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"
 
+# WebView2's own right-click menu, which menu_bar.rs adds its item to. The
+# versions wry already uses, so nothing more is built.
+[target.'cfg(windows)'.dependencies]
+webview2-com = "0.38"
+windows = "0.61"
+
 [dev-dependencies]
 # `test` enables Tauri's mock runtime (tauri::test) used by the menu test.
 tauri = { version = "2", features = ["test"] }
