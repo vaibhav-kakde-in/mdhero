@@ -1,4 +1,5 @@
 import { writable, get } from "svelte/store";
+import type { MessageKey } from "../i18n/core";
 
 const STORAGE_KEY = "mdhero:aiLookup";
 const SCHEMA_VERSION = 1 as const;
@@ -125,17 +126,17 @@ function newId(): string {
 }
 
 /** Validate a provider URL template. Must contain the literal `{prompt}` token
- *  exactly once. Surface the returned error string in the settings UI. */
-export function validateProviderUrl(template: string): string | null {
-  if (!template.trim()) return "URL is required";
+ *  exactly once. Returns a message key the settings UI renders via `$t`. */
+export function validateProviderUrl(template: string): MessageKey | null {
+  if (!template.trim()) return "ai.error.urlRequired";
   const matches = template.match(/\{prompt\}/g);
-  if (!matches) return "URL must contain {prompt} where the query goes";
-  if (matches.length > 1) return "URL must contain {prompt} only once";
+  if (!matches) return "ai.error.urlTokenMissing";
+  if (matches.length > 1) return "ai.error.urlTokenMultiple";
   try {
     // Plug a placeholder so URL constructor accepts it
     new URL(template.replace("{prompt}", "x"));
   } catch {
-    return "URL is not valid";
+    return "ai.error.urlInvalid";
   }
   return null;
 }

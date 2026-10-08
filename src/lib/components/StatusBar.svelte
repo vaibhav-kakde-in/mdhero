@@ -1,24 +1,26 @@
 <script lang="ts">
   import { document as docStore } from "$lib/stores/document";
+  import { t, locale, type Translator } from "$lib/i18n";
 
-  function readingTime(words: number): string {
-    const mins = Math.ceil(words / 230);
-    return mins <= 1 ? "1 min read" : `${mins} min read`;
+  function readingTime(words: number, t: Translator): string {
+    return t("status.readingTime", { mins: Math.max(Math.ceil(words / 230), 1) });
   }
 
-  function tokenEstimate(words: number): string {
+  function tokenEstimate(words: number, t: Translator): string {
     const tokens = Math.round(words * 1.33);
-    return tokens >= 1000 ? `~${(tokens / 1000).toFixed(1)}k tokens` : `~${tokens} tokens`;
+    return tokens >= 1000
+      ? t("status.tokensK", { tokens: (tokens / 1000).toFixed(1) })
+      : t("status.tokens", { tokens });
   }
 </script>
 
 {#if $docStore.renderedHtml && $docStore.wordCount > 0}
   <footer class="status-bar">
-    <span>{$docStore.wordCount.toLocaleString()} words</span>
+    <span>{$t("status.words", { count: $docStore.wordCount.toLocaleString($locale === "zh" ? "zh-CN" : "en-US") })}</span>
     <span class="sep">&middot;</span>
-    <span>{readingTime($docStore.wordCount)}</span>
+    <span>{readingTime($docStore.wordCount, $t)}</span>
     <span class="sep">&middot;</span>
-    <span>{tokenEstimate($docStore.wordCount)}</span>
+    <span>{tokenEstimate($docStore.wordCount, $t)}</span>
   </footer>
 {/if}
 

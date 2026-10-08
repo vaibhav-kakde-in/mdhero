@@ -1,5 +1,12 @@
 <script lang="ts">
   import { settings } from "$lib/stores/settings";
+  import { t, type MessageKey } from "$lib/i18n";
+
+  const fontLabelKeys: Record<string, MessageKey> = {
+    sans: "reader.fontSans",
+    serif: "reader.fontSerif",
+    mono: "reader.fontMono",
+  };
 
   let { visible = false }: { visible: boolean } = $props();
 </script>
@@ -7,10 +14,10 @@
 {#if visible}
   <div class="rc-panel">
     <div class="rc-arrow"></div>
-    <h3 class="rc-title">Reading Preferences</h3>
+    <h3 class="rc-title">{$t("reader.title")}</h3>
 
     <div class="rc-group">
-      <span class="rc-label">Font</span>
+      <span class="rc-label">{$t("reader.font")}</span>
       <div class="rc-segmented">
         {#each ["sans", "serif", "mono"] as font}
           <button
@@ -18,7 +25,7 @@
             class="rc-seg-btn"
             class:active={$settings.fontFamily === font}
           >
-            {font.charAt(0).toUpperCase() + font.slice(1)}
+            {$t(fontLabelKeys[font])}
           </button>
         {/each}
       </div>
@@ -26,7 +33,7 @@
 
     <div class="rc-group">
       <div class="rc-label-row">
-        <span class="rc-label">Text size</span>
+        <span class="rc-label">{$t("reader.textSize")}</span>
         <span class="rc-value">{$settings.fontSize}px</span>
       </div>
       <input
@@ -42,7 +49,7 @@
 
     <div class="rc-group">
       <div class="rc-label-row">
-        <span class="rc-label">Line spacing</span>
+        <span class="rc-label">{$t("reader.lineSpacing")}</span>
         <span class="rc-value">{$settings.lineHeight.toFixed(1)}</span>
       </div>
       <input
@@ -57,29 +64,29 @@
     </div>
 
     <div class="rc-group">
-      <span class="rc-label">Width mode</span>
+      <span class="rc-label">{$t("reader.widthMode")}</span>
       <div class="rc-segmented">
         <button
           onclick={() => settings.update((s) => ({ ...s, widthMode: "comfortable" }))}
           class="rc-seg-btn"
           class:active={$settings.widthMode === "comfortable"}
         >
-          Comfortable
+          {$t("reader.comfortable")}
         </button>
         <button
           onclick={() => settings.update((s) => ({ ...s, widthMode: "wide" }))}
           class="rc-seg-btn"
           class:active={$settings.widthMode === "wide"}
         >
-          Wide
+          {$t("reader.wide")}
         </button>
       </div>
     </div>
 
     <div class="rc-group" class:disabled={$settings.widthMode === "wide"} style="margin-bottom: 0;">
       <div class="rc-label-row">
-        <span class="rc-label">Content width</span>
-        <span class="rc-value">{$settings.widthMode === "wide" ? "Wide" : `${$settings.maxWidth}px`}</span>
+        <span class="rc-label">{$t("reader.contentWidth")}</span>
+        <span class="rc-value">{$settings.widthMode === "wide" ? $t("reader.wide") : `${$settings.maxWidth}px`}</span>
       </div>
       <input
         type="range"

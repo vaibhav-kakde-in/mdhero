@@ -16,6 +16,7 @@
     unwatchFile,
   } from "$lib/tauri/files";
   import { showToast } from "$lib/stores/toast";
+  import { t as tr } from "$lib/i18n";
   import { basename } from "$lib/utils/path";
   import { settings, getContentMaxWidth } from "$lib/stores/settings";
   import { initFileWatcher, stopFileWatcher } from "$lib/tauri/watcher";
@@ -335,8 +336,8 @@
           // safe one, so a reflexive Return keeps editing.
           const { ask } = await import("@tauri-apps/plugin-dialog");
           const keepEditing = await ask(
-            `${tab.fileName} changed on disk while you were editing. Saving will overwrite that version.`,
-            { title: "File changed on disk", kind: "warning", okLabel: "Keep Editing", cancelLabel: "Overwrite" }
+            $tr("dialog.fileChangedOnDiskBody", { name: tab.fileName }),
+            { title: $tr("dialog.fileChangedOnDisk"), kind: "warning", okLabel: $tr("dialog.keepEditing"), cancelLabel: $tr("dialog.overwrite") }
           );
           if (keepEditing) return;
         }
@@ -368,7 +369,7 @@
       });
     } catch (err) {
       console.error("Save failed:", err);
-      alert(`Save failed: ${err}`);
+      alert($tr("dialog.saveFailed", { error: String(err) }));
     }
   }
 
@@ -402,7 +403,7 @@
     const name = basename(resolved);
 
     if (!(await pathExists(resolved))) {
-      showToast(`Can't find “${name}”`);
+      showToast($tr("toast.fileNotFound", { name }));
       return;
     }
 
@@ -416,14 +417,14 @@
     // one click. The capability independently permits only PDFs and common
     // raster images; keep this denylist as defense-in-depth.
     if (isExecutablePath(resolved)) {
-      showToast(`Won't open executable file “${name}”. Open it from your file manager if you trust it.`);
+      showToast($tr("toast.executableRefused", { name }));
       return;
     }
 
     try {
       await openWithSystem(resolved);
     } catch {
-      showToast(`Couldn't open “${name}”`);
+      showToast($tr("toast.openFailed", { name }));
     }
   }
 
@@ -489,11 +490,11 @@
       // reflexive Return can't destroy unsaved work. `ask`'s OK button is the
       // default, so OK = "Keep Editing" and the cancel-position button is the
       // deliberate, non-default "Discard".
-      const keepEditing = await ask(`You have unsaved changes to ${t.fileName}.`, {
-        title: "Unsaved changes",
+      const keepEditing = await ask($tr("dialog.unsavedOne", { name: t.fileName }), {
+        title: $tr("common.unsavedChanges"),
         kind: "warning",
-        okLabel: "Keep Editing",
-        cancelLabel: "Discard",
+        okLabel: $tr("dialog.keepEditing"),
+        cancelLabel: $tr("dialog.discard"),
       });
       if (keepEditing) return false;
     }
@@ -612,13 +613,13 @@
           const { ask } = await import("@tauri-apps/plugin-dialog");
           const msg =
             dirty.length === 1
-              ? `You have unsaved changes to ${dirty[0].fileName}.`
-              : `You have unsaved changes in ${dirty.length} tabs.`;
+              ? $tr("dialog.unsavedOne", { name: dirty[0].fileName })
+              : $tr("dialog.unsavedMany", { count: dirty.length });
           const keepEditing = await ask(msg, {
-            title: "Unsaved changes",
+            title: $tr("common.unsavedChanges"),
             kind: "warning",
-            okLabel: "Keep Editing",
-            cancelLabel: "Discard",
+            okLabel: $tr("dialog.keepEditing"),
+            cancelLabel: $tr("dialog.discard"),
           });
           if (keepEditing) return;
         } catch {
@@ -636,7 +637,7 @@
       // If still nothing, give the user explicit feedback — silence is confusing
       // when a menu item is the trigger.
       if (!get(updateAvailable)) {
-        alert("MDHero is up to date.");
+        alert($tr("dialog.upToDate"));
       }
     };
     // Router for AI Lookup right-click menu items. lib.rs::setup forwards any
@@ -1173,11 +1174,11 @@
 
   {#if !rendererReady}
     <div class="state-center">
-      <p class="state-text pulse">Loading renderer...</p>
+      <p class="state-text pulse">{$tr("page.loadingRenderer")}</p>
     </div>
   {:else if $docStore.loading}
     <div class="state-center">
-      <p class="state-text pulse">Opening file...</p>
+      <p class="state-text pulse">{$tr("page.openingFile")}</p>
     </div>
   {:else if $docStore.error}
     <div class="state-center">

@@ -1,4 +1,5 @@
 import { writable, get } from "svelte/store";
+import { t } from "../i18n";
 
 /**
  * In-app download + install of updates via tauri-plugin-updater.
@@ -22,7 +23,7 @@ export async function installUpdate(): Promise<void> {
   // The updater plugin is a no-op in dev (no bundled app to replace). Surface
   // a clear message rather than failing cryptically.
   if (import.meta.env.DEV) {
-    updateError.set("In-app updates are only available in installed builds, not dev.");
+    updateError.set(get(t)("update.errorDevBuild"));
     return;
   }
 
@@ -37,7 +38,7 @@ export async function installUpdate(): Promise<void> {
     const update = await check();
 
     if (!update) {
-      updateError.set("No update available.");
+      updateError.set(get(t)("update.errorNoUpdate"));
       updateInstalling.set(false);
       return;
     }

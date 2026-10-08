@@ -1,6 +1,9 @@
 import { writable } from "svelte/store";
+import { normalizeLanguage, type LanguageSetting } from "../i18n/core";
 
 export interface ReaderSettings {
+  /** UI language; "system" follows the operating system (see `$lib/i18n`). */
+  language: LanguageSetting;
   fontSize: number;
   lineHeight: number;
   fontFamily: "sans" | "serif" | "mono";
@@ -41,6 +44,7 @@ function clamp(value: number, min: number, max: number): number {
 
 function loadSettings(): ReaderSettings {
   const defaults: ReaderSettings = {
+    language: "system",
     fontSize: 17,
     lineHeight: 1.7,
     fontFamily: "sans",
@@ -62,6 +66,7 @@ function loadSettings(): ReaderSettings {
       const storedMaxWidth = Number(parsed.maxWidth) || defaults.maxWidth;
       return {
         ...parsed,
+        language: normalizeLanguage(parsed.language),
         maxWidth: clamp(storedMaxWidth, MIN_MAX_WIDTH, MAX_MAX_WIDTH),
         widthMode: parsed.widthMode === "wide" ? "wide" : "comfortable",
         tocWidth: clampTocWidth(parsed.tocWidth),

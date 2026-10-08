@@ -10,6 +10,8 @@
   import { tabStore } from "$lib/stores/tabs";
   import { document as docStore } from "$lib/stores/document";
   import { basename, shortenHomePath } from "$lib/utils/path";
+  import { t, locale } from "$lib/i18n";
+  import { formatRelativeTime } from "$lib/utils/format-time";
 
   let { visible = $bindable(false) }: { visible: boolean } = $props();
 
@@ -59,7 +61,7 @@
   async function handleFetchUrl() {
     const trimmed = urlInput.trim();
     if (!trimmed || !isUrl(trimmed)) {
-      urlError = "Please enter a valid URL";
+      urlError = $t("url.invalid");
       return;
     }
     urlLoading = true;
@@ -68,13 +70,13 @@
       const rawUrl = toRawUrl(trimmed);
       const res = await fetch(rawUrl);
       if (!res.ok) {
-        urlError = res.status === 404 ? "File not found." : res.status === 403 ? "Access denied." : `Failed (${res.status})`;
+        urlError = res.status === 404 ? $t("openDialog.notFound") : res.status === 403 ? $t("openDialog.forbidden") : $t("openDialog.httpFailed", { status: res.status });
         urlLoading = false;
         return;
       }
       const markdown = await res.text();
       if (markdown.trim().startsWith("<!DOCTYPE") || markdown.trim().startsWith("<html")) {
-        urlError = "URL returned HTML, not markdown.";
+        urlError = $t("openDialog.htmlNotMarkdown");
         urlLoading = false;
         return;
       }
@@ -86,7 +88,7 @@
       urlInput = "";
       visible = false;
     } catch (err) {
-      urlError = `Network error: ${err instanceof Error ? err.message : "Could not reach URL"}`;
+      urlError = $t("url.networkError", { msg: err instanceof Error ? err.message : $t("url.unreachable") });
     }
     urlLoading = false;
   }
@@ -113,19 +115,6 @@
       visible = false;
     }
   }
-
-  function formatTime(ts: number): string {
-    const diff = Date.now() - ts;
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "Just now";
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d ago`;
-    return new Date(ts).toLocaleDateString();
-  }
-
 
   function formatPlanName(name: string): string {
     return name.replace(/\.md$/, "").replace(/[-_]/g, " ");
@@ -188,8 +177,8 @@
     <div class="dialog">
       <!-- Header -->
       <div class="dialog-header">
-        <h2 class="dialog-title">Open</h2>
-        <button onclick={() => (visible = false)} class="dialog-close">
+        <h2 class="dialog-title">{$t("openDialog.title")}</h2>
+        <button onclick={() => (visible = false)} class="dialog-close" aria-label={$t("common.close")}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="3" x2="11" y2="11"/><line x1="11" y1="3" x2="3" y2="11"/></svg>
         </button>
       </div>
@@ -200,19 +189,19 @@
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
             <path d="M2 5l4-3h8v11H2V5z"/><line x1="2" y1="5" x2="6" y2="5"/>
           </svg>
-          <span>Browse Files...</span>
+          <span>{$t("openDialog.browseFiles")}</span>
           <span class="browse-hint">{MOD}+O</span>
         </button>
         <div class="url-row">
           <input
             type="text"
             bind:value={urlInput}
-            placeholder="Paste a URL to open..."
+            placeholder={$t("openDialog.urlPlaceholder")}
             class="url-input-sm"
             onkeydown={(e) => e.key === 'Enter' && handleFetchUrl()}
           />
           <button onclick={handleFetchUrl} disabled={urlLoading || !urlInput.trim()} class="url-fetch-btn">
-            {urlLoading ? "..." : "Fetch"}
+            {urlLoading ? "..." : $t("openDialog.fetch")}
           </button>
         </div>
         {#if urlError}
@@ -227,7 +216,7 @@
           class:active={activeTab === "recent"}
           onclick={() => (activeTab = "recent")}
         >
-          Recent
+          {$t("openDialog.tabRecent")}
           {#if $recentFiles.length > 0}
             <span class="tab-count">{$recentFiles.length}</span>
           {/if}
@@ -237,7 +226,7 @@
           class:active={activeTab === "folders"}
           onclick={() => { activeTab = "folders"; loadFolderFiles(); }}
         >
-          Folders
+          {$t("openDialog.tabFolders")}
           {#if $pinnedFolders.length > 0}
             <span class="tab-count">{$pinnedFolders.length}</span>
           {/if}
@@ -247,7 +236,7 @@
           class:active={activeTab === "plans"}
           onclick={() => { activeTab = "plans"; loadPlans(); }}
         >
-          Plans
+          {$t("openDialog.tabPlans")}
           {#if plans.length > 0}
             <span class="tab-count">{plans.length}</span>
           {/if}
@@ -259,7 +248,7 @@
         {#if activeTab === "recent"}
           {#if $recentFiles.length === 0}
             <div class="empty-list">
-              <p>No recent files</p>
+              <p>{$t("openDialog.noRecent")}</p>
             </div>
           {:else}
             {#each $recentFiles as file (file.path)}
@@ -271,17 +260,17 @@
                   <span class="file-name">{file.name}</span>
                   <span class="file-path">{shortenHomePath(file.path)}</span>
                 </div>
-                <span class="file-time">{formatTime(file.openedAt)}</span>
+                <span class="file-time">{formatRelativeTime(file.openedAt, $t, $locale)}</span>
               </button>
             {/each}
           {/if}
         {:else if activeTab === "folders"}
           {#if $pinnedFolders.length === 0}
             <div class="empty-list">
-              <p>No pinned folders</p>
+              <p>{$t("openDialog.noPinned")}</p>
               <button class="add-folder-btn" onclick={handleAddFolder}>
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="7" y1="3" x2="7" y2="11"/><line x1="3" y1="7" x2="11" y2="7"/></svg>
-                Pin a folder
+                {$t("openDialog.pinFolder")}
               </button>
             </div>
           {:else}
@@ -311,29 +300,29 @@
                             <span class="file-path">{file.rel_path}</span>
                           {/if}
                         </div>
-                        <span class="file-time">{formatTime(file.modified)}</span>
+                        <span class="file-time">{formatRelativeTime(file.modified, $t, $locale)}</span>
                       </button>
                     {/each}
                   {:else}
-                    <div class="folder-loading-inline">Loading...</div>
+                    <div class="folder-loading-inline">{$t("openDialog.folderLoading")}</div>
                   {/if}
                 {/if}
               </div>
             {/each}
             <button class="add-folder-inline" onclick={handleAddFolder}>
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg>
-              Add folder
+              {$t("openDialog.addFolder")}
             </button>
           {/if}
         {:else}
           {#if plansLoading}
             <div class="empty-list">
-              <p>Loading plans...</p>
+              <p>{$t("openDialog.loadingPlans")}</p>
             </div>
           {:else if plans.length === 0}
             <div class="empty-list">
-              <p>No Claude Code plans found</p>
-              <span class="empty-hint">Plans are stored in ~/.claude/plans/</span>
+              <p>{$t("openDialog.noPlans")}</p>
+              <span class="empty-hint">{$t("openDialog.plansPathHint")}</span>
             </div>
           {:else}
             {#each plans as plan (plan.path)}
@@ -345,7 +334,7 @@
                   <span class="file-name">{formatPlanName(plan.name)}</span>
                   <span class="file-path">{shortenHomePath(plan.path)}</span>
                 </div>
-                <span class="file-time">{formatTime(plan.modified)}</span>
+                <span class="file-time">{formatRelativeTime(plan.modified, $t, $locale)}</span>
               </button>
             {/each}
           {/if}

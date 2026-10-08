@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import { get } from "svelte/store";
+  import { t } from "$lib/i18n";
   import { invoke } from "@tauri-apps/api/core";
   import { settings, fontFamilyMap, getContentMaxWidth } from "$lib/stores/settings";
   import { tocEntries, activeHeadingId, extractToc, isObserverPaused } from "$lib/stores/toc";
@@ -173,6 +174,10 @@
     // Re-run when html changes
     html;
 
+    // Track the language too: a switch must refresh the labels of the code-block
+    // copy buttons injected below, which live outside Svelte's template.
+    const copyLabel = $t("markdown.copy");
+
     // A re-render (e.g. opening a linked file in a new tab) replaces the
     // article, so a hover's mouseleave may never fire — clear any stuck tooltip.
     hideTooltip();
@@ -188,7 +193,7 @@
       setupTocObserver();
 
       // Add copy buttons to code blocks
-      addCodeCopyButtons();
+      addCodeCopyButtons(copyLabel);
 
       // Add image click handlers for lightbox
       addImageClickHandlers();
@@ -281,26 +286,33 @@
     });
   }
 
-  function addCodeCopyButtons() {
+  function addCodeCopyButtons(copyLabel: string) {
     if (!articleEl) return;
     const pres = articleEl.querySelectorAll("pre");
 
     for (const pre of pres) {
-      if (pre.querySelector(".code-copy-btn")) continue;
       if (pre.dataset.mermaidRendered) continue;
+
+      // Already injected — refresh the label for the current language instead
+      // of skipping, so a language switch updates existing buttons in place.
+      const existing = pre.querySelector<HTMLButtonElement>(".code-copy-btn");
+      if (existing) {
+        existing.textContent = copyLabel;
+        continue;
+      }
 
       // Make pre relative for absolute positioning of the button
       pre.style.position = "relative";
 
       const btn = document.createElement("button");
       btn.className = "code-copy-btn";
-      btn.textContent = "Copy";
+      btn.textContent = copyLabel;
       btn.addEventListener("click", () => {
         const code = pre.querySelector("code");
         const text = code?.textContent ?? pre.textContent ?? "";
         navigator.clipboard.writeText(text).then(() => {
-          btn.textContent = "Copied!";
-          setTimeout(() => (btn.textContent = "Copy"), 1500);
+          btn.textContent = get(t)("markdown.copied");
+          setTimeout(() => (btn.textContent = get(t)("markdown.copy")), 1500);
         });
       });
 
