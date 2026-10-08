@@ -1,7 +1,7 @@
 <script lang="ts">
   import { tabStore, HOME_TAB_ID, type Tab } from "$lib/stores/tabs";
-  import { newDocument } from "$lib/tauri/files";
-  import { copyPath } from "$lib/utils/clipboard";
+  import { newDocument, revealInFileManager } from "$lib/tauri/files";
+  import { copyFileName, copyPath } from "$lib/utils/clipboard";
 
   let {
     onCloseTab = (id: string) => tabStore.closeTab(id),
@@ -14,7 +14,9 @@
   let overIndex = $state(-1);
   let contextMenuTab = $state<Tab | null>(null);
   let contextMenuPos = $state({ x: 0, y: 0 });
-  let copyFeedback = $state("");
+  // Result of the last copy (or failed reveal), shown in place of the label of
+  // the entry clicked.
+  let copyFeedback = $state<{ item: "path" | "name" | "reveal"; text: string } | null>(null);
 
   function handleClose(e: MouseEvent, id: string) {
     e.stopPropagation();
@@ -89,28 +91,63 @@
       && !tab.filePath.startsWith("new://");
   }
 
+  // Every document tab gets the menu, since any of them can be closed; the copy
+  // entries only show for tabs backed by a file.
   function handleContextMenu(e: MouseEvent, tab: Tab) {
-    if (!isFileTab(tab)) return;
     e.preventDefault();
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const menuWidth = 160;
     contextMenuPos = { x: Math.min(rect.left, window.innerWidth - menuWidth - 8), y: rect.bottom + 4 };
     contextMenuTab = tab;
-    copyFeedback = "";
+    copyFeedback = null;
   }
 
   function closeContextMenu() {
     contextMenuTab = null;
-    copyFeedback = "";
+    copyFeedback = null;
   }
 
-  async function handleCopyPath() {
+  async function handleCopy(item: "path" | "name") {
     if (!contextMenuTab) return;
-    const success = await copyPath(contextMenuTab.filePath);
-    copyFeedback = success ? "Copied!" : "Failed";
+    const copy = item === "path" ? copyPath : copyFileName;
+    const success = await copy(contextMenuTab.filePath);
+    copyFeedback = { item, text: success ? "Copied!" : "Failed" };
     setTimeout(closeContextMenu, 900);
   }
+
+  // On success the file manager window is the feedback, so the menu just
+  // closes. It fails when the file was moved or deleted since it was opened.
+  async function handleReveal() {
+    if (!contextMenuTab) return;
+    try {
+      await revealInFileManager(contextMenuTab.filePath);
+      closeContextMenu();
+    } catch (err) {
+      console.error("revealItemInDir failed:", err);
+      copyFeedback = { item: "reveal", text: "Failed" };
+      setTimeout(closeContextMenu, 900);
+    }
+  }
+
+  // Escape dismisses the menu and nothing else. The page's own Escape handler
+  // listens on window too, but in the bubble phase, so without this it would
+  // also close the active tab (close-on-Escape setting).
+  function handleMenuKeydown(e: KeyboardEvent) {
+    if (e.key !== "Escape" || !contextMenuTab) return;
+    e.preventDefault();
+    e.stopPropagation();
+    closeContextMenu();
+  }
+
+  function handleCloseFromMenu() {
+    if (!contextMenuTab) return;
+    const id = contextMenuTab.id;
+    closeContextMenu();
+    onCloseTab(id);
+  }
 </script>
+
+<svelte:window onkeydowncapture={handleMenuKeydown} />
 
 <div class="tabbar">
   <div class="tabbar-inner">
@@ -172,8 +209,20 @@
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="fixed inset-0 z-[9]" onclick={closeContextMenu} onkeydown={() => {}}></div>
   <div class="dropdown" style="left: {contextMenuPos.x}px; top: {contextMenuPos.y}px;">
-    <button onclick={handleCopyPath} class="dropdown-item">
-      <span>{copyFeedback || "Copy Path"}</span>
+    {#if isFileTab(contextMenuTab)}
+      <button onclick={() => handleCopy("name")} class="dropdown-item">
+        <span>{copyFeedback?.item === "name" ? copyFeedback.text : "Copy File Name"}</span>
+      </button>
+      <button onclick={() => handleCopy("path")} class="dropdown-item">
+        <span>{copyFeedback?.item === "path" ? copyFeedback.text : "Copy Path"}</span>
+      </button>
+      <button onclick={handleReveal} class="dropdown-item">
+        <span>{copyFeedback?.item === "reveal" ? copyFeedback.text : "Open File Location"}</span>
+      </button>
+      <div class="dropdown-separator"></div>
+    {/if}
+    <button onclick={handleCloseFromMenu} class="dropdown-item">
+      <span>Close Tab</span>
     </button>
   </div>
 {/if}
@@ -393,6 +442,16 @@
   }
 
   :global(html.dark) .dropdown-item:hover {
+    background: #3a3a3c;
+  }
+
+  .dropdown-separator {
+    height: 1px;
+    margin: 4px 6px;
+    background: #e5e5e5;
+  }
+
+  :global(html.dark) .dropdown-separator {
     background: #3a3a3c;
   }
 

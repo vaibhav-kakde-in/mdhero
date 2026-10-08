@@ -1,3 +1,5 @@
+import { basename } from "./path";
+
 /**
  * Copy rendered HTML as rich text using selection-based approach.
  * Works reliably in Tauri webviews where ClipboardItem may not be supported.
@@ -63,6 +65,19 @@ export async function copyAsMarkdown(markdown: string): Promise<boolean> {
 export async function copyPath(path: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Copy a file's name — the last segment of its path, extension included — to
+ * clipboard.
+ */
+export async function copyFileName(path: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(basename(path));
     return true;
   } catch {
     return false;

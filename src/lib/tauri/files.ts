@@ -225,6 +225,15 @@ export async function openWithSystem(path: string): Promise<void> {
 }
 
 /**
+ * Open the file's folder in the OS file manager (Explorer, Finder), with the
+ * file selected. Throws if the file is no longer there.
+ */
+export async function revealInFileManager(path: string): Promise<void> {
+  const { revealItemInDir } = await import("@tauri-apps/plugin-opener");
+  await revealItemInDir(path);
+}
+
+/**
  * Whitelist a document's resolved local image paths with the webview's asset
  * protocol (issue #31). The Rust side serves only files inside the document's
  * own folder tree (its git checkout, if it is in one) or a pinned folder — see
