@@ -1,9 +1,31 @@
 <script lang="ts">
   import { X } from "@lucide/svelte";
+  import { invoke } from "@tauri-apps/api/core";
   import { settings } from "$lib/stores/settings";
+  import { isMac } from "$lib/utils/platform";
   import AILookupSettings from "./AILookupSettings.svelte";
 
   let { visible = $bindable(false) }: { visible: boolean } = $props();
+
+  // Not in the settings store: a new launch decides whether to join this
+  // window before its webview exists, so Rust owns this one (#71).
+  const showWindowMode = !isMac();
+  let openInExistingWindow = $state(false);
+
+  $effect(() => {
+    if (visible && showWindowMode) {
+      invoke<boolean>("get_open_in_existing_window")
+        .then((enabled) => (openInExistingWindow = enabled))
+        .catch(() => {});
+    }
+  });
+
+  function setOpenInExistingWindow(enabled: boolean) {
+    openInExistingWindow = enabled;
+    invoke("set_open_in_existing_window", { enabled }).catch(() => {
+      openInExistingWindow = !enabled;
+    });
+  }
 
   function handleBackdropClick(e: MouseEvent) {
     if (e.target === e.currentTarget) visible = false;
@@ -57,6 +79,21 @@
               class="setting-switch"
             />
           </label>
+
+          {#if showWindowMode}
+            <label class="setting-row">
+              <div class="setting-text">
+                <span class="setting-label">Open files in the existing window</span>
+                <span class="setting-hint">Files opened from your file manager or the command line become tabs here instead of new windows. Applies from the next launch of MDHero.</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={openInExistingWindow}
+                onchange={(e) => setOpenInExistingWindow(e.currentTarget.checked)}
+                class="setting-switch"
+              />
+            </label>
+          {/if}
 
           <label class="setting-row">
             <div class="setting-text">

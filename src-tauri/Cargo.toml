@@ -28,9 +28,13 @@ notify = { version = "7", features = ["macos_fsevent"] }
 notify-debouncer-mini = "0.5"
 tauri-plugin-process = "2"
 tauri-plugin-window-state = "2"
+dirs = "6"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"
+
+[target.'cfg(any(target_os = "windows", target_os = "linux"))'.dependencies]
+tauri-plugin-single-instance = "2"
 
 [dev-dependencies]
 # `test` enables Tauri's mock runtime (tauri::test) used by the menu test.

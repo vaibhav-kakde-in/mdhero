@@ -1,5 +1,6 @@
 mod commands;
 pub mod menu;
+mod single_window;
 mod watcher;
 
 use std::sync::Mutex;
@@ -25,6 +26,31 @@ fn get_opened_files(state: tauri::State<'_, OpenedFiles>) -> Vec<String> {
     let result = paths.clone();
     paths.clear();
     result
+}
+
+/// Hand files the OS asked us to open to the main window. They are sent
+/// straight to the frontend if the webview is ready, and also buffered in
+/// `OpenedFiles` in case it isn't yet.
+pub(crate) fn deliver_opened_files(app: &tauri::AppHandle, file_paths: Vec<String>) {
+    if file_paths.is_empty() {
+        return;
+    }
+
+    if let Some(window) = app.get_webview_window("main") {
+        for file_path in &file_paths {
+            let js = format!(
+                "window.__mdhero_open_path?.({})",
+                serde_json::json!(file_path)
+            );
+            let _ = window.eval(&js);
+        }
+    }
+
+    if let Some(state) = app.try_state::<OpenedFiles>() {
+        if let Ok(mut paths) = state.paths.lock() {
+            paths.extend(file_paths);
+        }
+    }
 }
 
 /// Parse a `mdhero://open?path=<url-encoded-abs-path>` deep link into an
@@ -67,7 +93,24 @@ fn parse_mdhero_url(url: &tauri::Url) -> Option<String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let context = tauri::generate_context!();
+    let builder = tauri::Builder::default();
+
+    // Registered first, and only when the setting is on (#71): a later launch
+    // hands its files to the running window and exits during this plugin's
+    // setup, before any other plugin starts or its own window is created.
+    #[cfg(any(target_os = "windows", target_os = "linux"))]
+    let builder = if single_window::can_register()
+        && single_window::is_enabled(&context.config().identifier)
+    {
+        builder.plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+            single_window::on_second_instance(app, argv, cwd)
+        }))
+    } else {
+        builder
+    };
+
+    builder
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -90,6 +133,8 @@ pub fn run() {
             watcher::unwatch_file,
             watcher::stop_watching,
             get_opened_files,
+            single_window::get_open_in_existing_window,
+            single_window::set_open_in_existing_window,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
@@ -158,7 +203,7 @@ pub fn run() {
 
             Ok(())
         })
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("error while building tauri application")
         .run(|_app_handle, event| {
             #[cfg(target_os = "macos")]
@@ -184,27 +229,7 @@ pub fn run() {
                     }
                 }
 
-                if file_paths.is_empty() {
-                    return;
-                }
-
-                // Try to send directly to frontend if webview is ready
-                if let Some(window) = app_handle.get_webview_window("main") {
-                    for file_path in &file_paths {
-                        let js = format!(
-                            "window.__mdhero_open_path?.({})",
-                            serde_json::json!(file_path)
-                        );
-                        let _ = window.eval(&js);
-                    }
-                }
-
-                // Also buffer in state in case webview isn't ready yet
-                if let Some(state) = app_handle.try_state::<OpenedFiles>() {
-                    if let Ok(mut paths) = state.paths.lock() {
-                        paths.extend(file_paths);
-                    }
-                }
+                deliver_opened_files(app_handle, file_paths);
             }
         });
 }
