@@ -237,7 +237,8 @@
     z-index: 14;
   }
 
-  :global(html.dark) .toc-sidebar {
+  /* The contents are the page's own outline, so they take the page theme. */
+  :global(html.page-dark) .toc-sidebar {
     background: #1c1c1e;
     border-right-color: #2c2c2e;
     box-shadow: 2px 0 8px rgba(0,0,0,0.2);
@@ -322,7 +323,7 @@
     line-height: 1.6;
   }
 
-  :global(html.dark) .toc-item {
+  :global(html.page-dark) .toc-item {
     color: #8e8e93;
   }
 
@@ -330,7 +331,7 @@
     color: #1c1c1e;
   }
 
-  :global(html.dark) .toc-item:hover {
+  :global(html.page-dark) .toc-item:hover {
     color: #e5e5e7;
   }
 
@@ -343,7 +344,7 @@
     border-radius: 0 4px 4px 0;
   }
 
-  :global(html.dark) .toc-item.active {
+  :global(html.page-dark) .toc-item.active {
     color: #22D3EE;
     border-left-color: #22D3EE;
     background: rgba(34, 211, 238, 0.08);

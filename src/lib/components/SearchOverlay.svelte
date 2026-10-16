@@ -291,7 +291,7 @@
     border-radius: 2px;
   }
 
-  :global(html.dark mark.mdv-search-highlight) {
+  :global(html.page-dark mark.mdv-search-highlight) {
     background-color: #854d0e;
   }
 
@@ -300,7 +300,7 @@
     color: white !important;
   }
 
-  :global(html.dark mark.mdv-search-active) {
+  :global(html.page-dark mark.mdv-search-active) {
     background-color: #ea580c !important;
   }
 

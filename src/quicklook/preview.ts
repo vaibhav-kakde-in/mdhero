@@ -85,6 +85,10 @@ async function renderMermaidBlocks(root: HTMLElement): Promise<void> {
 
 async function renderDocument(markdown: string, isDark: boolean): Promise<void> {
   document.documentElement.classList.toggle("dark", isDark);
+  // The document styles come from MarkdownRenderer, which keys off the page
+  // theme rather than the interface's. A preview is all page, so both follow
+  // the system here.
+  document.documentElement.classList.toggle("page-dark", isDark);
 
   const article = document.getElementById("doc");
   if (!article) return;

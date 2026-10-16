@@ -2,7 +2,7 @@
   import { document } from "../stores/document";
   import { MOD } from "$lib/utils/platform";
   import { settings } from "../stores/settings";
-  import { themeMode, cycleTheme } from "../stores/theme";
+  import { themeMode, cycleTheme, cyclePageTheme } from "../stores/theme";
   import { tocVisible, tocEntries, toggleToc, activeHeadingId } from "../stores/toc";
   import { openFileDialog } from "../tauri/files";
   import { copyAsRichText, copyAsMarkdown } from "../utils/clipboard";
@@ -75,6 +75,11 @@
     themeMode.update((m) => cycleTheme(m));
   }
 
+  function handlePageThemeToggle() {
+    closeAll();
+    settings.update((s) => ({ ...s, pageTheme: cyclePageTheme(s.pageTheme) }));
+  }
+
   function toggleWidthMode() {
     closeAll();
     settings.update((s) => ({
@@ -115,6 +120,13 @@
       default: return "\u25D1";
     }
   }
+
+  const THEME_NAMES: Record<string, string> = {
+    system: "System",
+    auto: "Same as interface",
+    light: "Light",
+    dark: "Dark",
+  };
 </script>
 
 <header class="toolbar">
@@ -340,7 +352,32 @@
       </svg>
     </button>
 
-    <button onclick={handleThemeToggle} class="btn btn-icon" title="Toggle theme">
+    <!-- The rendered page has its own theme, apart from the interface's: a
+         page icon that is empty (light), solid (dark) or half (same as the
+         interface). -->
+    <button
+      onclick={handlePageThemeToggle}
+      class="btn btn-icon page-theme-btn"
+      title="Page theme: {THEME_NAMES[$settings.pageTheme]}"
+      aria-label="Page theme: {THEME_NAMES[$settings.pageTheme]}"
+    >
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round">
+        {#if $settings.pageTheme === "dark"}
+          <path d="M3.5 1.5h6L13 5v9.5H3.5z" fill="currentColor" />
+        {:else if $settings.pageTheme === "auto"}
+          <path d="M8.25 1.5h1.25L13 5v9.5H8.25z" fill="currentColor" stroke="none" />
+        {/if}
+        <path d="M3.5 1.5h6L13 5v9.5H3.5z" />
+        <path d="M9.5 1.5V5H13" />
+      </svg>
+    </button>
+
+    <button
+      onclick={handleThemeToggle}
+      class="btn btn-icon"
+      title="Interface theme: {THEME_NAMES[$themeMode]}"
+      aria-label="Interface theme: {THEME_NAMES[$themeMode]}"
+    >
       {getThemeIcon($themeMode)}
     </button>
   </div>

@@ -4,6 +4,9 @@
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:where(.dark, .dark *));
+/* The rendered page has its own theme, which can differ from the interface's
+   (stores/theme.ts). Page styles key off this instead of `dark`. */
+@custom-variant page-dark (&:where(.page-dark, .page-dark *));
 
 /* Tailwind Typography wraps blockquote paragraphs in “ ” quote glyphs by
    default. Drop them: they aren't in the source markdown, and `>` is used for
