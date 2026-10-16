@@ -1,5 +1,7 @@
 mod commands;
 pub mod menu;
+#[cfg(windows)]
+mod menu_bar;
 mod watcher;
 
 use std::sync::Mutex;
@@ -95,6 +97,11 @@ pub fn run() {
             let handle = app.handle().clone();
             let menu = menu::create_menu(&handle)?;
             app.set_menu(menu)?;
+
+            #[cfg(windows)]
+            if let Some(main_window) = app.get_webview_window("main") {
+                menu_bar::setup(&main_window);
+            }
 
             // Red-button (window) close routes through the frontend quit guard
             // instead of closing, so unsaved changes get a confirm dialog (#54).
