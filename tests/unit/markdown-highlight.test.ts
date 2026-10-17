@@ -210,7 +210,7 @@ describe("block syntax", () => {
   });
 
   it("recognises frontmatter after a UTF-8 BOM", () => {
-    expect(highlightMarkdown("﻿---\na: 1\n---")).toContain("md-key");
+    expect(highlightMarkdown("\uFEFF---\na: 1\n---")).toContain("md-key");
   });
 
   it("marks reference definitions", () => {
