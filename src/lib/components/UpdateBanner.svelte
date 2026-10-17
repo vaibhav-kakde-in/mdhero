@@ -1,7 +1,7 @@
 <script lang="ts">
   import { updateAvailable, updateDismissed, dismissUpdate } from "$lib/stores/updater";
   import { installUpdate, updateInstalling, updateProgress, updateError } from "$lib/stores/autoUpdate";
-
+  
   async function openDownload() {
     const target = $updateAvailable?.download || $updateAvailable?.url;
     if (!target) return;
@@ -52,7 +52,7 @@
         <!-- progress shown in the title while installing -->
       {:else if $updateError}
         <button class="banner-btn primary" onclick={openDownload}>Download manually</button>
-        <button class="banner-btn dismiss" onclick={dismissUpdate}>Later</button>
+        <button class="banner-btn dismiss" onclick={dismissUpdate}>Later</button>>
       {:else}
         {#if $updateAvailable.url}
           <button class="banner-btn link" onclick={openReleaseNotes}>Release notes</button>

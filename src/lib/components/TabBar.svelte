@@ -229,8 +229,8 @@
       <div class="dropdown-separator"></div>
     {/if}
     <button onclick={handleCloseFromMenu} class="dropdown-item">
-      <span>Close Tab</span>
-    </button>
+      <span>{"Close Tab"}</span>
+</button>
   </div>
 {/if}
 

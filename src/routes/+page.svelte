@@ -18,12 +18,14 @@
   import { showToast } from "$lib/stores/toast";
   import { basename } from "$lib/utils/path";
   import { settings, getContentMaxWidth, stepFontSize, DEFAULT_FONT_SIZE } from "$lib/stores/settings";
+  import { translationSettings } from "$lib/stores/translation";
   import { initFileWatcher, stopFileWatcher } from "$lib/tauri/watcher";
   import { restoreSession } from "$lib/tauri/session";
   import { attachSplitSync, type SplitSync } from "$lib/utils/split-sync";
   import { themeMode, cycleTheme } from "$lib/stores/theme";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { invoke } from "@tauri-apps/api/core";
+  import { listen } from "@tauri-apps/api/event";
   import { tocVisible, tocEntries } from "$lib/stores/toc";
   import Toolbar from "$lib/components/Toolbar.svelte";
   import MarkdownRenderer from "$lib/components/MarkdownRenderer.svelte";
@@ -38,6 +40,7 @@
   import AboutDialog from "$lib/components/AboutDialog.svelte";
   import CustomPromptModal from "$lib/components/CustomPromptModal.svelte";
   import { assembleUrlByIds, consumePendingSelection } from "$lib/stores/aiLookup";
+  import { googleTranslateUrl } from "$lib/utils/translate";
   import FrontmatterBar from "$lib/components/FrontmatterBar.svelte";
   import StatusBar from "$lib/components/StatusBar.svelte";
   import ProgressBar from "$lib/components/ProgressBar.svelte";
@@ -376,6 +379,114 @@
     }
   }
 
+  // Tracks whether the *current* document view is a translation, plus the
+  // original content we can restore without re-rendering from disk.
+  let translatedState = $state<Record<string, {
+    originalContent: string;
+    originalRenderedHtml: string;
+    translatedContent: string;
+    translatedRenderedHtml: string;
+  }>>({});
+  let isTranslating = $state(false);
+  let translateProgress = $state<{ done: number; total: number } | null>(null);
+  let selectionPopup = $state<{
+    selection: string;
+    x: number;
+    y: number;
+    loading: boolean;
+    result?: string;
+    error?: string;
+  } | null>(null);
+
+  async function handleTranslateDocument(autoOnly: boolean = false) {
+    const tab = activeTab;
+    if (!tab || !tab.content.trim() || isTranslating) return;
+
+    // Toggle back to the original when already translated.
+    const state = translatedState[tab.filePath];
+    if (state) {
+      tabStore.updateTabContent(
+        tab.filePath,
+        state.originalContent,
+        state.originalRenderedHtml,
+        tab.frontmatter,
+        tab.wordCount,
+      );
+      docStore.set({
+        filePath: tab.filePath,
+        fileName: tab.fileName,
+        content: state.originalContent,
+        renderedHtml: state.originalRenderedHtml,
+        frontmatter: tab.frontmatter,
+        wordCount: tab.wordCount,
+        loading: false,
+        error: null,
+      });
+      const { [tab.filePath]: _, ...rest } = translatedState;
+      translatedState = rest;
+      isTranslating = false;
+      translateProgress = null;
+      return;
+    }
+
+    if (tab.content.length > 200_000) {
+      const ok = confirm(
+        `Document is large (${Math.round(tab.content.length / 1024)} KB). Translation may take a while and can hit Google rate limits. Continue?`,
+      );
+      if (!ok) return;
+    }
+
+    const settings = get(translationSettings);
+    translateProgress = null;
+    isTranslating = true;
+    try {
+      const result = await invoke<{ text: string; detected_source?: string }>(
+        "translate_text",
+        { engine: "google", text: tab.content, target: settings.targetLang }
+      );
+      if (autoOnly && result.detected_source && result.detected_source === settings.targetLang) {
+        isTranslating = false;
+        translateProgress = null;
+        return;
+      }
+      const baseDir = getBaseDir(tab.filePath);
+      const rendered = renderFull(result.text, baseDir);
+      await allowAssets(rendered.assetPaths, tab.filePath);
+      translatedState = {
+        ...translatedState,
+        [tab.filePath]: {
+          originalContent: tab.content,
+          originalRenderedHtml: tab.renderedHtml,
+          translatedContent: result.text,
+          translatedRenderedHtml: rendered.html,
+        },
+      };
+      tabStore.updateTabContent(
+        tab.filePath,
+        result.text,
+        rendered.html,
+        rendered.frontmatter,
+        rendered.wordCount,
+      );
+      docStore.set({
+        filePath: tab.filePath,
+        fileName: tab.fileName,
+        content: result.text,
+        renderedHtml: rendered.html,
+        frontmatter: rendered.frontmatter,
+        wordCount: rendered.wordCount,
+        loading: false,
+        error: null,
+      });
+    } catch (err) {
+      console.error("Translate failed:", err);
+      alert(`Translate failed: ${err}`);
+    } finally {
+      isTranslating = false;
+      translateProgress = null;
+    }
+  }
+
   /**
    * Open a local file linked from the rendered markdown (issue #30). Resolves
    * the href against the current document's directory: markdown files open in a
@@ -657,6 +768,30 @@
         await openUrl(url);
         return;
       }
+      if (
+        menuId === "aimenu:translate" ||
+        menuId === "aimenu:google-translate" ||
+        menuId === "aimenu:google_translate"
+      ) {
+        if (!selection.trim()) return;
+        const range = window.getSelection()?.getRangeAt?.(0);
+        const rect = range?.getBoundingClientRect();
+        // Chrome-style: keep the translation card in a stable slot instead of
+        // anchoring it to the (scrolling away) selection.
+        const x = Math.max(12, window.innerWidth - 400);
+        const y = 72;
+        selectionPopup = { selection, x, y, loading: true };
+        try {
+          const res = await invoke<{ text: string; detected_source?: string }>(
+            "translate_text",
+            { engine: "google", text: selection, target: get(translationSettings).targetLang }
+          );
+          selectionPopup = { ...selectionPopup, loading: false, result: res.text };
+        } catch (err) {
+          selectionPopup = { ...selectionPopup, loading: false, error: String(err) };
+        }
+        return;
+      }
       if (menuId === "aimenu:custom") {
         customPromptSelection = selection;
         customPromptVisible = true;
@@ -680,6 +815,12 @@
 
     // Listen for keyboard shortcuts and scroll for reading progress
     window.addEventListener("keydown", handleKeydown);
+
+    // Live progress for in-app translation (Rust emits one event per chunk).
+    void listen<{ done: number; total: number }>("translate-progress", (e) => {
+      translateProgress = e.payload;
+    });
+
     window.addEventListener("keyup", handleKeyup);
     // Not passive: the page must not scroll under a Ctrl + wheel zoom.
     window.addEventListener("wheel", handleWheel, { passive: false });
@@ -872,6 +1013,7 @@
   }
 
   function handleKeydown(e: KeyboardEvent) {
+    if (selectionPopup && e.key === "Escape") { selectionPopup = null; return; }
     // Cmd+1-9 tab switching
     if ((e.metaKey || e.ctrlKey) && e.key >= "1" && e.key <= "9") {
       e.preventDefault();
@@ -1141,6 +1283,10 @@
     // mid-edit (#44). Runs once per tab switch, so an explicit exit (Esc) sticks.
     presenting = isMarpDoc(tab.frontmatter) && get(settings).autoPresentMarp && !tab.isEditing;
 
+    if (get(translationSettings).autoTranslate && !translatedState[tab.filePath]) {
+      setTimeout(() => { void handleTranslateDocument(true); }, 0);
+    }
+
     getCurrentWindow().setTitle(`${tab.fileName} — MDHero`).catch(() => {});
 
     const savedScroll = tab.scrollTop;
@@ -1174,11 +1320,34 @@
       onSetMode={setMode}
       onSave={() => activeTab && handleSave(activeTab)}
       onOpenSettings={() => (settingsVisible = true)}
+      onTranslate={() => handleTranslateDocument(false)}
+      isTranslating={isTranslating}
+      isTranslated={Boolean(activeTab && translatedState[activeTab.filePath])}
       canPresent={activeIsMarp}
       presenting={presenting}
       onTogglePresent={togglePresent}
     />
     <TabBar onCloseTab={handleCloseTab} />
+  {/if}
+  {#if selectionPopup}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="translate-popup-backdrop" onclick={() => (selectionPopup = null)} onkeydown={(e) => { if (e.key === "Escape") selectionPopup = null; }}>
+      <div class="translate-popup" style={`left:${selectionPopup.x}px; top:${selectionPopup.y}px`} onclick={(e) => e.stopPropagation()}>
+        <div class="translate-popup-header">
+          <span class="translate-popup-title">Translate document</span>>
+          <button class="translate-popup-close" onclick={() => (selectionPopup = null)} aria-label="Close">×</button>
+        </div>
+        <div class="translate-popup-body">
+          {#if selectionPopup.loading}
+            <span class="translate-spinner"></span> Translating…
+          {:else if selectionPopup.error}
+            {selectionPopup.error}
+          {:else}
+            <pre class="translate-popup-text">{selectionPopup.result}</pre>
+          {/if}
+        </div>
+      </div>
+    </div>
   {/if}
   <DropZone />
   {#if !zenMode && !activeTab?.isEditing}
@@ -1483,4 +1652,38 @@
       border: none !important;
     }
   }
+  .translate-popup-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.18);
+    z-index: 9999;
+  }
+  .translate-popup {
+    position: fixed;
+    width: min(360px, calc(100vw - 24px));
+    max-height: min(50vh, 420px);
+    background: white;
+    border: 1px solid #e5e5ea;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  :global(html.dark) .translate-popup {
+    background: #2c2c2e;
+    border-color: #3a3a3c;
+  }
+  .translate-popup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid #f2f2f7;
+  }
+  :global(html.dark) .translate-popup-header { border-bottom-color: #3a3a3c; }
+  .translate-popup-title { font-size: 13px; font-weight: 600; }
+  .translate-popup-close { border: none; background: none; cursor: pointer; font-size: 16px; line-height: 1; }
+  .translate-popup-body { padding: 12px; overflow: auto; font-size: 13px; }
+  .translate-popup-text { white-space: pre-wrap; margin: 0; word-break: break-word; }
 </style>

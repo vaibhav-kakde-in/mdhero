@@ -22,6 +22,9 @@
     onSetMode = (_m: "view" | "split" | "edit") => {},
     onSave = () => {},
     onOpenSettings = () => {},
+    onTranslate = () => {},
+    isTranslating = false,
+    isTranslated = false,
     canPresent = false,
     presenting = false,
     onTogglePresent = () => {},
@@ -38,6 +41,9 @@
     onSetMode?: (m: "view" | "split" | "edit") => void;
     onSave?: () => void;
     onOpenSettings?: () => void;
+    onTranslate?: () => void;
+    isTranslating?: boolean;
+    isTranslated?: boolean;
     canPresent?: boolean;
     presenting?: boolean;
     onTogglePresent?: () => void;
@@ -274,6 +280,23 @@
       {#if dirty}
         <span class="dirty-dot"></span>
       {/if}
+    </button>
+    <button
+      onclick={onTranslate}
+      class="btn btn-icon"
+      class:translated={isTranslated}
+      class:translating={isTranslating}
+      disabled={!$document.renderedHtml || isEditing || isTranslating}
+      title={!$document.renderedHtml
+        ? 'Translate / show original (open a file first)'
+        : isEditing
+        ? 'Translate / show original (exit edit mode to use)'
+        : isTranslated
+        ? 'Show original document'
+        : isTranslating
+        ? 'Translating…'
+        : 'Translate document'}
+    >
     </button>
 
     <div class="relative">
@@ -673,5 +696,29 @@
 
   @media print {
     .toolbar { display: none !important; }
+  }
+  .translate-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #e5e5ea;
+    border-top-color: #0891b2;
+    border-radius: 50%;
+    display: inline-block;
+    animation: translate-spin 0.7s linear infinite;
+  }
+  @keyframes translate-spin {
+    to { transform: rotate(360deg); }
+  }
+  :global(html.dark) .translate-spinner {
+    border-color: #3a3a3c;
+    border-top-color: #67e8f9;
+  }
+  .btn-icon.translated {
+    background: #eff6ff;
+    color: #0891b2;
+  }
+  :global(html.dark) .btn-icon.translated {
+    background: #164e63;
+    color: #67e8f9;
   }
 </style>

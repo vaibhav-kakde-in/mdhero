@@ -3,18 +3,32 @@ use tauri::{
     AppHandle, Runtime,
 };
 
-pub fn create_menu<R: Runtime>(app: &AppHandle<R>) -> Result<Menu<R>, tauri::Error> {
+pub fn create_menu<R: Runtime>(app: &AppHandle<R>, locale: &str) -> Result<Menu<R>, tauri::Error> {
+    let ru = locale == "ru";
+    let about = if ru { "О MDHero" } else { "About MDHero" };
+    let check_updates = if ru { "Проверить обновления…" } else { "Check for Updates…" };
+    let quit = if ru { "Выйти из MDHero" } else { "Quit MDHero" };
+    let file_menu_label = if ru { "Файл" } else { "File" };
+    let open_item = if ru { "Открыть…" } else { "Open..." };
+    let paste_item = if ru { "Вставка Markdown…" } else { "Paste Markdown..." };
+    let print_item = if ru { "Печать…" } else { "Print..." };
+    let close_tab_item = if ru { "Закрыть вкладку" } else { "Close Tab" };
+    let edit_menu_label = if ru { "Правка" } else { "Edit" };
+    let find_item = if ru { "Найти…" } else { "Find..." };
+    let view_menu_label = if ru { "Вид" } else { "View" };
+    let toggle_theme_item = if ru { "Переключить тему" } else { "Toggle Theme" };
+    let window_menu_label = if ru { "Окно" } else { "Window" };
     // macOS app menu (app name menu with Quit, Hide, etc.)
     let app_menu = Submenu::with_items(
         app,
         "MDHero",
         true,
         &[
-            &MenuItem::with_id(app, "about", "About MDHero", true, None::<&str>)?,
+            &MenuItem::with_id(app, "about", about, true, None::<&str>)?,
             &MenuItem::with_id(
                 app,
                 "check_updates",
-                "Check for Updates…",
+                check_updates,
                 true,
                 None::<&str>,
             )?,
@@ -26,35 +40,35 @@ pub fn create_menu<R: Runtime>(app: &AppHandle<R>) -> Result<Menu<R>, tauri::Err
             // Custom Quit (not PredefinedMenuItem::quit) so Cmd+Q / menu Quit
             // fire a "quit" menu event instead of terminating outright — the
             // frontend guards it for unsaved changes (#54).
-            &MenuItem::with_id(app, "quit", "Quit MDHero", true, Some("CmdOrCtrl+Q"))?,
+            &MenuItem::with_id(app, "quit", quit, true, Some("CmdOrCtrl+Q"))?,
         ],
     )?;
 
     let file_menu = Submenu::with_items(
         app,
-        "File",
+        file_menu_label,
         true,
         &[
-            &MenuItem::with_id(app, "open", "Open...", true, Some("CmdOrCtrl+O"))?,
+            &MenuItem::with_id(app, "open", open_item, true, Some("CmdOrCtrl+O"))?,
             &MenuItem::with_id(
                 app,
                 "paste_md",
-                "Paste Markdown...",
+                paste_item,
                 true,
                 Some("CmdOrCtrl+Shift+V"),
             )?,
             &PredefinedMenuItem::separator(app)?,
             // Native print dialog for the rendered document (#89). Windows had
             // no way in but WebView2's own Ctrl+P, which nothing advertised.
-            &MenuItem::with_id(app, "print", "Print...", true, Some("CmdOrCtrl+P"))?,
+            &MenuItem::with_id(app, "print", print_item, true, Some("CmdOrCtrl+P"))?,
             &PredefinedMenuItem::separator(app)?,
-            &MenuItem::with_id(app, "close", "Close Tab", true, Some("CmdOrCtrl+W"))?,
+            &MenuItem::with_id(app, "close", close_tab_item, true, Some("CmdOrCtrl+W"))?,
         ],
     )?;
 
     let edit_menu = Submenu::with_items(
         app,
-        "Edit",
+        edit_menu_label,
         true,
         &[
             &PredefinedMenuItem::cut(app, None)?,
@@ -62,19 +76,19 @@ pub fn create_menu<R: Runtime>(app: &AppHandle<R>) -> Result<Menu<R>, tauri::Err
             &PredefinedMenuItem::paste(app, None)?,
             &PredefinedMenuItem::select_all(app, None)?,
             &PredefinedMenuItem::separator(app)?,
-            &MenuItem::with_id(app, "find", "Find...", true, Some("CmdOrCtrl+F"))?,
+            &MenuItem::with_id(app, "find", find_item, true, Some("CmdOrCtrl+F"))?,
         ],
     )?;
 
     let view_menu = Submenu::with_items(
         app,
-        "View",
+        view_menu_label,
         true,
         &[
             &MenuItem::with_id(
                 app,
                 "theme",
-                "Toggle Theme",
+                toggle_theme_item,
                 true,
                 Some("CmdOrCtrl+Shift+T"),
             )?,
@@ -102,7 +116,7 @@ pub fn create_menu<R: Runtime>(app: &AppHandle<R>) -> Result<Menu<R>, tauri::Err
     let window_menu = Submenu::with_id_and_items(
         app,
         tauri::menu::WINDOW_SUBMENU_ID,
-        "Window",
+        window_menu_label,
         true,
         &[
             &PredefinedMenuItem::minimize(app, None)?,

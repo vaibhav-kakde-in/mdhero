@@ -4,6 +4,7 @@
   import { settings } from "$lib/stores/settings";
   import { isMac } from "$lib/utils/platform";
   import AILookupSettings from "./AILookupSettings.svelte";
+  import TranslationSettings from "./TranslationSettings.svelte";
 
   let { visible = $bindable(false) }: { visible: boolean } = $props();
 
@@ -54,6 +55,8 @@
         <section class="settings-section">
           <h3 class="section-title">Behavior</h3>
 
+
+
           <label class="setting-row">
             <div class="setting-text">
               <span class="setting-label">Close on Escape</span>
@@ -97,7 +100,7 @@
 
           <label class="setting-row">
             <div class="setting-text">
-              <span class="setting-label">Auto-present Marp decks</span>
+              <span class="setting-label">Auto-present Marp decks</span>>
               <span class="setting-hint">Open documents with <code>marp: true</code> frontmatter as a slideshow.</span>
             </div>
             <input
@@ -114,7 +117,7 @@
 
           <label class="setting-row">
             <div class="setting-text">
-              <span class="setting-label">Line numbers</span>
+              <span class="setting-label">Line numbers</span>>
               <span class="setting-hint">Show a line-number gutter in the editor.</span>
             </div>
             <input
@@ -137,6 +140,12 @@
               class="setting-switch"
             />
           </label>
+        </section>
+
+        <section class="settings-section">
+          <h3 class="section-title">Translation</h3>
+          <p class="section-hint">Translate documents and selected text with a free web translator. When "always translate" is on, documents whose language differs from the target are translated automatically.</p>
+          <TranslationSettings />
         </section>
 
         <section class="settings-section">
@@ -339,5 +348,21 @@
 
   .setting-switch:checked::before {
     transform: translateX(16px);
+  }
+
+  .setting-select {
+    min-width: 150px;
+    padding: 4px 8px;
+    border: 1px solid #e5e5ea;
+    border-radius: 6px;
+    background: white;
+    color: #1c1c1e;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  :global(html.dark) .setting-select {
+    background: #3a3a3c;
+    border-color: #3a3a3c;
+    color: #e5e5e7;
   }
 </style>

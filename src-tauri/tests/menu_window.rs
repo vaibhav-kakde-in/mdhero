@@ -26,7 +26,7 @@ fn run() {
     use tauri::menu::WINDOW_SUBMENU_ID;
 
     let app = tauri::test::mock_app();
-    let menu = mdhero_lib::menu::create_menu(app.handle()).expect("menu should build");
+    let menu = mdhero_lib::menu::create_menu(app.handle(), "en").expect("menu should build");
 
     let window_item = menu.get(WINDOW_SUBMENU_ID).unwrap_or_else(|| {
         panic!(

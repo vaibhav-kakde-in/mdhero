@@ -463,6 +463,15 @@ pub fn show_ai_context_menu(
     providers: Vec<AIProvider>,
     has_selection: bool,
 ) -> Result<(), String> {
+    let locale = app
+        .try_state::<crate::AppLocale>()
+        .map(|s| s.0.lock().unwrap().clone())
+        .unwrap_or_else(|| "en".to_string());
+    let ru = locale == "ru";
+    let search_google_item = if ru { "Поиск в Google по выделенному" } else { "Search Google for selection" };
+    let translate_selection_item = if ru { "Перевести выделенное в Google" } else { "Translate selection with Google" };
+    let custom_prompt_item = if ru { "Произвольный промпт…" } else { "Custom prompt..." };
+    let no_prompts_item = if ru { "Нет промптов — добавьте в настройках" } else { "No prompts — add some in Settings" };
     let window = app
         .get_webview_window("main")
         .ok_or_else(|| "main window not found".to_string())?;
@@ -487,12 +496,25 @@ pub fn show_ai_context_menu(
     let google_item = MenuItem::with_id(
         &app,
         "aimenu:google",
-        "Search Google for selection",
+        search_google_item,
         has_selection,
         None::<&str>,
     )
     .map_err(|e| e.to_string())?;
     menu.append(&google_item).map_err(|e| e.to_string())?;
+
+    // Translate with Google �?" opens the free Google Translate web page for the
+    // selected text. Enabled only when there is a selection, like the Google
+    // search item above.
+    let translate_item = MenuItem::with_id(
+        &app,
+        "aimenu:translate",
+        translate_selection_item,
+        has_selection,
+        None::<&str>,
+    )
+    .map_err(|e| e.to_string())?;
+    menu.append(&translate_item).map_err(|e| e.to_string())?;
 
     if !providers.is_empty() {
         menu.append(&PredefinedMenuItem::separator(&app).map_err(|e| e.to_string())?)
@@ -503,7 +525,7 @@ pub fn show_ai_context_menu(
     // one assembles the URL from provider.urlTemplate + prompt.template +
     // current selection (done frontend-side).
     for provider in &providers {
-        let submenu_label = format!("Ask {}", provider.name);
+        let submenu_label = if ru { format!("Спросить {}", provider.name) } else { format!("Ask {}", provider.name) };
         let submenu =
             Submenu::new(&app, &submenu_label, has_selection).map_err(|e| e.to_string())?;
 
@@ -514,7 +536,7 @@ pub fn show_ai_context_menu(
             let hint = MenuItem::with_id(
                 &app,
                 format!("aimenu:noop:{}", provider.id),
-                "No prompts — add some in Settings",
+                no_prompts_item,
                 false,
                 None::<&str>,
             )
@@ -540,7 +562,7 @@ pub fn show_ai_context_menu(
     let custom_item = MenuItem::with_id(
         &app,
         "aimenu:custom",
-        "Custom prompt...",
+        custom_prompt_item,
         true,
         None::<&str>,
     )
@@ -549,6 +571,209 @@ pub fn show_ai_context_menu(
 
     window.popup_menu(&menu).map_err(|e| e.to_string())?;
 
+    Ok(())
+}
+
+// ---- Free Google Translate in-app translation ----------------------------
+//
+// Uses the undocumented (but publicly reachable, no-key) Google Translate
+// endpoint. Network calls live in Rust so the web view's CORS rules do not
+// block them and so the call can be blocking-safe under Tauri's runtime.
+
+#[derive(serde::Serialize)]
+pub struct TranslateResult {
+    pub text: String,
+    pub detected_source: Option<String>,
+}
+
+#[tauri::command]
+pub async fn translate_text(
+    app: tauri::AppHandle,
+    engine: String,
+    text: String,
+    target: String,
+) -> Result<TranslateResult, String> {
+    if engine != "google" {
+        return Err(format!(
+            "In-app translation is only implemented for the 'google' engine; \
+             '{}' is available via the context menu / browser.",
+            engine
+        ));
+    }
+    if text.trim().is_empty() {
+        return Ok(TranslateResult {
+            text: String::new(),
+            detected_source: None,
+        });
+    }
+
+    use tauri::Emitter;
+
+    #[derive(serde::Serialize, Clone)]
+    struct TranslateProgress {
+        done: usize,
+        total: usize,
+    }
+
+    let segments = split_protected_segments(&text);
+    let total_chunks: usize = segments
+        .iter()
+        .filter(|(protected, _)| !protected)
+        .map(|(_, segment)| chunk_text(segment, 4000).len())
+        .sum();
+    let mut done_chunks: usize = 0;
+    let client = reqwest::Client::new();
+    let mut translated = String::new();
+    let mut detected_source: Option<String> = None;
+
+    for (protected, segment) in segments {
+        if protected {
+            translated.push_str(&segment);
+            continue;
+        }
+        for chunk in chunk_text(&segment, 4000) {
+            let body = translate_google_chunk(&client, &chunk, &target).await?;
+            let value: serde_json::Value = serde_json::from_str(&body)
+                .map_err(|e| format!("Parsing Google Translate response failed: {}", e))?;
+
+            if let Some(arr) = value.get(0).and_then(|v| v.as_array()) {
+                for seg in arr {
+                    if let Some(t) = seg.get(0).and_then(|v| v.as_str()) {
+                        translated.push_str(t);
+                    }
+                }
+            }
+            if detected_source.is_none() {
+                detected_source = value.get(2).and_then(|v| v.as_str()).map(|s| s.to_string());
+            }
+            done_chunks += 1;
+            let _ = app.emit(
+                "translate-progress",
+                TranslateProgress {
+                    done: done_chunks,
+                    total: total_chunks.max(1),
+                },
+            );
+            // Friendly backoff to avoid 429 on large documents.
+            std::thread::sleep(std::time::Duration::from_millis(120));
+        }
+    }
+
+    Ok(TranslateResult {
+        text: translated,
+        detected_source,
+    })
+}
+
+async fn translate_google_chunk(
+    client: &reqwest::Client,
+    chunk: &str,
+    target: &str,
+) -> Result<String, String> {
+    if chunk.trim().is_empty() {
+        return Ok("[]".to_string());
+    }
+    for attempt in 0..4 {
+        let resp = client
+            .get("https://translate.googleapis.com/translate_a/single")
+            .query(&[
+                ("client", "gtx"),
+                ("sl", "auto"),
+                ("tl", target),
+                ("dt", "t"),
+                ("q", chunk),
+            ])
+            .send()
+            .await
+            .map_err(|e| format!("Google Translate request failed: {}", e))?;
+
+        let status = resp.status();
+        if status.is_success() {
+            return resp
+                .text()
+                .await
+                .map_err(|e| format!("Reading Google Translate response failed: {}", e));
+        }
+        if status.as_u16() == 429 || status.is_server_error() {
+            // Exponential-ish backoff for rate limits / transient errors.
+            let delay = 400 * (attempt + 1) as u64;
+            std::thread::sleep(std::time::Duration::from_millis(delay));
+            continue;
+        }
+        return Err(format!("Google Translate returned HTTP {}", status));
+    }
+    Err("Google Translate rate limit exceeded; please retry later.".to_string())
+}
+
+/// Split markdown into protected (code fences / verbatim) and translatable
+/// segments. Protected content is returned unchanged so that code blocks,
+/// shell commands, etc. are not mangled by translation.
+fn split_protected_segments(text: &str) -> Vec<(bool, String)> {
+    let mut out: Vec<(bool, String)> = Vec::new();
+    let mut buf = String::new();
+    let mut in_code = false;
+
+    for line in text.split_inclusive('\n') {
+        let trimmed = line.trim_start();
+        if trimmed.starts_with("```") {
+            if !buf.is_empty() {
+                out.push((in_code, std::mem::take(&mut buf)));
+            }
+            out.push((true, line.to_string()));
+            in_code = !in_code;
+            continue;
+        }
+
+        if in_code {
+            out.push((true, line.to_string()));
+        } else {
+            buf.push_str(line);
+        }
+    }
+
+    if !buf.is_empty() {
+        out.push((false, buf));
+    }
+    if out.is_empty() {
+        out.push((false, String::new()));
+    }
+    out
+}
+
+fn chunk_text(text: &str, max: usize) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    let mut current = String::new();
+    for line in text.lines() {
+        if !current.is_empty() && current.len() + line.len() + 1 > max {
+            out.push(std::mem::take(&mut current));
+        }
+        if !current.is_empty() {
+            current.push('\n');
+        }
+        current.push_str(line);
+    }
+    if !current.is_empty() {
+        out.push(current);
+    }
+    if out.is_empty() {
+        out.push(String::new());
+    }
+    out
+}
+
+// ---- Native menu / locale support ---------------------------------------
+
+#[tauri::command]
+pub fn set_locale(app: tauri::AppHandle, locale: String) {
+    if let Some(state) = app.try_state::<crate::AppLocale>() {
+        *state.0.lock().unwrap() = locale;
+    }
+}
+
+#[tauri::command]
+pub fn rebuild_menu(app: tauri::AppHandle, locale: String) -> Result<(), String> {
+    let menu = crate::menu::create_menu(&app, &locale).map_err(|e| e.to_string())?;
+    app.set_menu(menu).map_err(|e| e.to_string())?;
     Ok(())
 }
 
