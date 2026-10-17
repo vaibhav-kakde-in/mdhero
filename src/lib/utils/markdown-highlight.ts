@@ -28,6 +28,36 @@ const span = (cls: string, html: string): string => (html ? `<span class="${cls}
  *  long is generated data, not prose anyone reads in the editor. */
 const MAX_INLINE_LINE = 10_000;
 
+/**
+ * Work budget for the inline scan of one line, in scanner steps.
+ *
+ * Every inline construct looks ahead for its closer, and an opener with no
+ * closer scans to the end of the line. A line of nothing but openers (`[[[[`,
+ * `*a *a *a`, `$a $a $a`, …) therefore costs quadratic time, and since the whole
+ * document is re-highlighted on every keystroke, a document of such lines froze
+ * editing for seconds (2.7 s per keystroke for 20 lines of 9,999 `[`). That is a
+ * denial of service from an untrusted file, so the scan is bounded rather than
+ * each lookahead patched one by one.
+ *
+ * The allowance is linear in the line's length and far above what real text
+ * uses. When it runs out, the line is highlighted again with inline scanning
+ * off: block syntax (headings, list markers, quotes) keeps its colour and the
+ * rest is escaped as plain text, the same as a line over MAX_INLINE_LINE.
+ */
+const STEPS_PER_CHAR = 32;
+const STEPS_BASE = 4_096;
+
+class ScanBudgetExceeded extends Error {}
+
+let stepsLeft = Infinity;
+let inlineEnabled = true;
+
+/** Charge `n` scanner steps against the current line's budget. */
+function spend(n = 1): void {
+  stepsLeft -= n;
+  if (stepsLeft < 0) throw new ScanBudgetExceeded();
+}
+
 // --- Block patterns (one line at a time; `\r` tolerated for CRLF files) -----
 
 /** Same shape the renderer strips (`FRONTMATTER_RE` in pipeline.ts), BOM allowed. */
@@ -61,7 +91,10 @@ const isAlnum = (ch: string | undefined): boolean => ch !== undefined && ALNUM_R
 /** Length of the run of `ch` starting at `from`. */
 function runLength(s: string, from: number, ch: string): number {
   let i = from;
-  while (s[i] === ch) i++;
+  while (s[i] === ch) {
+    i++;
+    spend();
+  }
   return i - from;
 }
 
@@ -73,6 +106,7 @@ function codeSpanEnd(s: string, from: number): number {
   const run = runLength(s, from, "`");
   let i = from + run;
   while (i < s.length) {
+    spend();
     if (s[i] !== "`") {
       i++;
       continue;
@@ -91,6 +125,7 @@ function codeSpanEnd(s: string, from: number): number {
 function matchingBracket(s: string, open: number, openCh: string, closeCh: string): number {
   let depth = 0;
   for (let i = open; i < s.length; i++) {
+    spend();
     const ch = s[i];
     if (ch === "\\") {
       i++;
@@ -115,6 +150,7 @@ function matchingBracket(s: string, open: number, openCh: string, closeCh: strin
 function emphasisClose(s: string, from: number, ch: string, run: number): number {
   let i = from + run;
   while (i < s.length) {
+    spend();
     const c = s[i];
     if (c === "\\") {
       i += 2;
@@ -153,12 +189,13 @@ function trimBareUrl(url: string): string {
  * @param pipes Mark unescaped `|` as table cell separators.
  */
 function inline(s: string, pipes = false): string {
-  if (s.length > MAX_INLINE_LINE) return esc(s);
+  if (!inlineEnabled || s.length > MAX_INLINE_LINE) return esc(s);
 
   let out = "";
   let plainFrom = 0;
   let i = 0;
   while (i < s.length) {
+    spend();
     const ch = s[i];
     let html: string | null = null;
     let end = i + 1;
@@ -240,6 +277,7 @@ function inlineMathEnd(s: string, from: number): number {
   }
   if (isSpace(s[from + 1])) return from;
   for (let i = from + 2; i < s.length; i++) {
+    spend();
     if (s[i] === "\\") {
       i++;
     } else if (s[i] === "$") {
@@ -334,6 +372,24 @@ function blockLine(line: string, pipes: boolean, inQuote = false): [string, Line
   return [inline(line), "paragraph"];
 }
 
+/** `blockLine` under the line's work budget (see STEPS_PER_CHAR). */
+function blockLineWithinBudget(line: string, pipes: boolean): [string, LineKind] {
+  stepsLeft = STEPS_PER_CHAR * line.length + STEPS_BASE;
+  try {
+    return blockLine(line, pipes);
+  } catch (err) {
+    if (!(err instanceof ScanBudgetExceeded)) throw err;
+    inlineEnabled = false;
+    try {
+      return blockLine(line, pipes);
+    } finally {
+      inlineEnabled = true;
+    }
+  } finally {
+    stepsLeft = Infinity;
+  }
+}
+
 /**
  * Returns `text` as HTML, one string per line (split on `\n`), with its
  * Markdown syntax wrapped in `md-*` spans. No span crosses a line break, so
@@ -415,7 +471,7 @@ export function highlightMarkdownLines(text: string): string[] {
       inTable = true;
     }
 
-    const [html, kind] = blockLine(line, inTable);
+    const [html, kind] = blockLineWithinBudget(line, inTable);
     if (kind === "paragraph" && next !== undefined && SETEXT_UNDERLINE_RE.test(next)) {
       out.push(span("md-heading", html));
       setextNext = true;
