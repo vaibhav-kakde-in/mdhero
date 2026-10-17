@@ -6,6 +6,8 @@
 // titles were showing. These helpers handle both separators and are unit tested
 // against real paths from all three platforms.
 
+import type { Translate } from "../i18n";
+
 /**
  * Last segment of a filesystem path — the file or folder name.
  *
@@ -51,16 +53,17 @@ export function shortenHomePath(path: string): string {
  * one (see `tabsNeedingFolder`): the folder a file is in, or what kind of tab
  * it is for the ones without a file. Only the last two folder segments are
  * kept — enough to tell two README.md apart, without a long path that the
- * ellipsis would cut from its useful end.
+ * ellipsis would cut from its useful end. Takes the translator, as
+ * `formatRelativeTime` does, so the template can pass `$t`.
  */
-export function tabFolderLabel(filePath: string): string {
-  if (filePath.startsWith("paste://")) return "Pasted";
-  if (filePath.startsWith("new://")) return "Not saved yet";
+export function tabFolderLabel(filePath: string, tr: Translate): string {
+  if (filePath.startsWith("paste://")) return tr("tabbar.folderPasted");
+  if (filePath.startsWith("new://")) return tr("tabbar.folderNotSaved");
   if (filePath.startsWith("url://")) {
     try {
       return new URL(filePath.slice("url://".length)).host;
     } catch {
-      return "Web page";
+      return tr("tabbar.folderWebPage");
     }
   }
 
@@ -87,7 +90,9 @@ export function tabsNeedingFolder(
   const foldersByName = new Map<string, Set<string>>();
   for (const tab of tabs) {
     const folders = foldersByName.get(tab.fileName) ?? new Set<string>();
-    folders.add(tabFolderLabel(tab.filePath));
+    // Only compared with each other, so the keys themselves will do: the
+    // grouping is the same in every language.
+    folders.add(tabFolderLabel(tab.filePath, (key) => key));
     foldersByName.set(tab.fileName, folders);
   }
   return new Set(

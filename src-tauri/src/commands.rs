@@ -457,11 +457,27 @@ pub struct AIProvider {
     pub prompts: Vec<AIPrompt>,
 }
 
+/// Localized labels for the context menu, supplied by the frontend i18n
+/// tables so the menu follows the UI language (like the menu bar does).
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContextMenuLabels {
+    pub search_google: String,
+    /// "Ask {name}" — `{name}` is replaced with the provider name.
+    pub ask: String,
+    pub no_prompts: String,
+    pub custom_prompt: String,
+    pub cut: String,
+    pub copy: String,
+    pub paste: String,
+}
+
 #[tauri::command]
 pub fn show_ai_context_menu(
     app: AppHandle,
     providers: Vec<AIProvider>,
     has_selection: bool,
+    labels: ContextMenuLabels,
 ) -> Result<(), String> {
     let window = app
         .get_webview_window("main")
@@ -472,11 +488,11 @@ pub fn show_ai_context_menu(
     // Standard editing items at the top (matches what most apps' context menus
     // open with). These are also the default browser context menu items, which
     // would otherwise be lost when we suppress the default contextmenu.
-    menu.append(&PredefinedMenuItem::cut(&app, None).map_err(|e| e.to_string())?)
+    menu.append(&PredefinedMenuItem::cut(&app, Some(labels.cut.as_str())).map_err(|e| e.to_string())?)
         .map_err(|e| e.to_string())?;
-    menu.append(&PredefinedMenuItem::copy(&app, None).map_err(|e| e.to_string())?)
+    menu.append(&PredefinedMenuItem::copy(&app, Some(labels.copy.as_str())).map_err(|e| e.to_string())?)
         .map_err(|e| e.to_string())?;
-    menu.append(&PredefinedMenuItem::paste(&app, None).map_err(|e| e.to_string())?)
+    menu.append(&PredefinedMenuItem::paste(&app, Some(labels.paste.as_str())).map_err(|e| e.to_string())?)
         .map_err(|e| e.to_string())?;
     menu.append(&PredefinedMenuItem::separator(&app).map_err(|e| e.to_string())?)
         .map_err(|e| e.to_string())?;
@@ -487,7 +503,7 @@ pub fn show_ai_context_menu(
     let google_item = MenuItem::with_id(
         &app,
         "aimenu:google",
-        "Search Google for selection",
+        &labels.search_google,
         has_selection,
         None::<&str>,
     )
@@ -503,7 +519,7 @@ pub fn show_ai_context_menu(
     // one assembles the URL from provider.urlTemplate + prompt.template +
     // current selection (done frontend-side).
     for provider in &providers {
-        let submenu_label = format!("Ask {}", provider.name);
+        let submenu_label = labels.ask.replace("{name}", &provider.name);
         let submenu =
             Submenu::new(&app, &submenu_label, has_selection).map_err(|e| e.to_string())?;
 
@@ -514,7 +530,7 @@ pub fn show_ai_context_menu(
             let hint = MenuItem::with_id(
                 &app,
                 format!("aimenu:noop:{}", provider.id),
-                "No prompts — add some in Settings",
+                &labels.no_prompts,
                 false,
                 None::<&str>,
             )
@@ -540,7 +556,7 @@ pub fn show_ai_context_menu(
     let custom_item = MenuItem::with_id(
         &app,
         "aimenu:custom",
-        "Custom prompt...",
+        &labels.custom_prompt,
         true,
         None::<&str>,
     )

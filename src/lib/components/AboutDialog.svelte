@@ -3,6 +3,7 @@
   import { X } from "@lucide/svelte";
   import { getVersion } from "@tauri-apps/api/app";
   import appIcon from "$lib/assets/mdhero-icon.png";
+  import { t } from "$lib/i18n";
 
   let { visible = $bindable(false) }: { visible: boolean } = $props();
   let appVersion = $state("");
@@ -32,8 +33,8 @@
   <div class="dialog-backdrop" onclick={handleBackdropClick} onkeydown={handleKeydown}>
     <div class="dialog">
       <div class="dialog-header">
-        <h2 class="dialog-title">About MDHero</h2>
-        <button onclick={() => (visible = false)} class="dialog-close" aria-label="Close">
+        <h2 class="dialog-title">{$t('about.title')}</h2>
+        <button onclick={() => (visible = false)} class="dialog-close" aria-label={$t('common.close')}>
           <X size={16} />
         </button>
       </div>
@@ -42,8 +43,8 @@
         <div class="about-content">
           <img src={appIcon} class="app-icon" alt="MDHero" width="48" height="48" />
           <h3 class="app-name">MDHero</h3>
-          <p class="app-version">Version {appVersion}</p>
-          <p class="app-description">A beautiful, fast Markdown viewer for your desktop.</p>
+          <p class="app-version">{$t('about.version', { version: appVersion })}</p>
+          <p class="app-description">{$t('about.description')}</p>
           <a
             class="app-link"
             href="https://github.com/vaibhav-kakde-in/mdhero"

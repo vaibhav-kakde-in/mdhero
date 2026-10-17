@@ -82,5 +82,25 @@ fn run() {
     assert_eq!(print.text().unwrap(), "Print...");
     assert!(print.is_enabled().unwrap(), "File > Print should be enabled");
 
-    println!("ok: Window submenu present with tiling id; Edit > Find preserved; File > Print present");
+    // A translated menu (Settings → Language) must keep the tiling id: the
+    // label changes, the id macOS looks for does not.
+    let labels = mdhero_lib::menu::MenuLabels::from([
+        ("menu.window".to_string(), "Fenêtre".to_string()),
+        ("menu.print".to_string(), "Imprimer...".to_string()),
+    ]);
+    let localized = mdhero_lib::menu::create_menu_with_labels(app.handle(), &labels)
+        .expect("localized menu should build");
+    let window_item = localized
+        .get(WINDOW_SUBMENU_ID)
+        .expect("a localized menu must keep the WINDOW_SUBMENU_ID submenu");
+    assert_eq!(window_item.as_submenu().unwrap().text().unwrap(), "Fenêtre");
+    let print = localized
+        .items()
+        .unwrap()
+        .into_iter()
+        .find_map(|item| item.as_submenu()?.get("print"))
+        .expect("the localized menu should still have File > Print");
+    assert_eq!(print.as_menuitem().unwrap().text().unwrap(), "Imprimer...");
+
+    println!("ok: Window submenu present with tiling id; Edit > Find preserved; File > Print present; labels localize");
 }

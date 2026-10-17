@@ -10,6 +10,7 @@
   } from "$lib/stores/settings";
   import { chromeTop, sideTabsWidth } from "$lib/utils/layout";
   import PanelResizer from "./PanelResizer.svelte";
+  import { t } from "$lib/i18n";
 
   /** The width the ToC shares with the document: the window, less the side
    *  tabs panel when there is one. */
@@ -35,7 +36,7 @@
 {#if $tocVisible && $tocEntries.length > 0}
   <aside class="toc-sidebar">
     <div class="toc-header">
-      <span>On this page</span>
+      <span>{$t('toc.onThisPage')}</span>
     </div>
     <nav class="toc-nav">
       {#each $tocEntries as entry (entry.id)}
@@ -62,7 +63,7 @@
     maxWidth={() => maxTocWidthFor(availableWidth())}
     cssVar="--toc-w"
     resizingClass="toc-resizing"
-    label="Resize table of contents"
+    label={$t('toc.resize')}
     left="calc(var(--tabs-w, 0px) + var(--toc-w, 240px) - 11px)"
     top="calc(var(--chrome-top, 88px) + 8px)"
     bottom="calc(var(--status-h, 0px) + 8px)"

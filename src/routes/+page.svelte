@@ -36,6 +36,7 @@
   import PasteModal from "$lib/components/PasteModal.svelte";
   import OpenDialog from "$lib/components/OpenDialog.svelte";
   import SettingsDialog from "$lib/components/SettingsDialog.svelte";
+  import LanguageDialog from "$lib/components/LanguageDialog.svelte";
   import AboutDialog from "$lib/components/AboutDialog.svelte";
   import CustomPromptModal from "$lib/components/CustomPromptModal.svelte";
   import { assembleUrlByIds, consumePendingSelection } from "$lib/stores/aiLookup";
@@ -51,6 +52,7 @@
   import { updateScrollPercent } from "$lib/stores/recents";
   import { checkForUpdates, updateAvailable, updateDismissed, checkInFlight } from "$lib/stores/updater";
   import { get } from "svelte/store";
+  import { t, translate, hasChosenLocale } from "$lib/i18n";
   import { getCurrentSourceLine, scrollToSourceLine, type ViewMode } from "$lib/utils/scroll-sync";
   import { gutterHtml, gutterWidth, lineCount } from "$lib/utils/line-gutter";
   import { createWheelZoom } from "$lib/utils/wheel-zoom";
@@ -63,6 +65,7 @@
   let pasteDefaultMode = $state<"paste" | "url">("paste");
   let openVisible = $state(false);
   let settingsVisible = $state(false);
+  let languageVisible = $state(false);
   let aboutVisible = $state(false);
   let customPromptVisible = $state(false);
   let customPromptSelection = $state("");
@@ -94,7 +97,7 @@
   // ESC handler. Each modal's own ESC handler also calls stopPropagation(); the
   // two together cover both focus-inside and focus-outside-modal cases.
   let anyModalVisible = $derived(
-    searchVisible || pasteVisible || openVisible || settingsVisible || aboutVisible || customPromptVisible || lightboxVisible
+    searchVisible || pasteVisible || openVisible || settingsVisible || aboutVisible || customPromptVisible || lightboxVisible || languageVisible
   );
 
   // Reading progress: debounced scroll save + restore guard
@@ -353,7 +356,8 @@
           // Overwrite is the explicit answer; Escape and the close box cancel
           // the save and leave both versions intact (#160).
           const overwrite = await promptOverwrite(
-            `${tab.fileName} changed on disk while you were editing. Saving will overwrite that version.`
+            translate("page.diskChangedMsg", { name: tab.fileName }),
+            translate("page.diskChangedTitle")
           );
           if (!overwrite) return false;
         }
@@ -386,7 +390,7 @@
       return true;
     } catch (err) {
       console.error("Save failed:", err);
-      alert(`Save failed: ${err}`);
+      alert(translate("page.saveFailed", { err: String(err) }));
       return false;
     }
   }
@@ -421,7 +425,7 @@
     const name = basename(resolved);
 
     if (!(await pathExists(resolved))) {
-      showToast(`Can't find “${name}”`);
+      showToast(translate("page.cantFind", { name }));
       return;
     }
 
@@ -435,14 +439,14 @@
     // one click. The capability independently permits only PDFs and common
     // raster images; keep this denylist as defense-in-depth.
     if (isExecutablePath(resolved)) {
-      showToast(`Won't open executable file “${name}”. Open it from your file manager if you trust it.`);
+      showToast(translate("page.wontOpenExecutable", { name }));
       return;
     }
 
     try {
       await openWithSystem(resolved);
     } catch {
-      showToast(`Couldn't open “${name}”`);
+      showToast(translate("page.couldntOpen", { name }));
     }
   }
 
@@ -506,7 +510,10 @@
       // Three answers, so neither reflex is destructive: Return saves, Escape
       // cancels, and Discard has to be clicked (#160). Anything unexpected is
       // treated as Cancel — see `promptUnsaved`.
-      const choice = await promptUnsaved(`You have unsaved changes to ${t.fileName}.`);
+      const choice = await promptUnsaved(
+        translate("page.unsavedChangesOne", { name: t.fileName }),
+        translate("page.unsavedChangesTitle")
+      );
       if (choice === "cancel") return false;
       if (choice === "save") {
         if (!(await handleSave(t))) return false; // save cancelled or failed
@@ -586,6 +593,11 @@
     initRenderer();
     rendererReady = true;
 
+    // First run: ask for a language. The picker highlights the OS-detected
+    // one (English when the OS language isn't supported); choosing or
+    // dismissing stores a choice, so it only ever appears once.
+    if (!hasChosenLocale()) languageVisible = true;
+
     // Expose functions for native menu and OS file-open handlers
     (window as any).__mdhero_open_file = () => { openVisible = true; };
     (window as any).__mdhero_open_path = (path: string) => {
@@ -630,9 +642,9 @@
       if (dirty.length > 0) {
         const msg =
           dirty.length === 1
-            ? `You have unsaved changes to ${dirty[0].fileName}.`
-            : `You have unsaved changes in ${dirty.length} tabs.`;
-        const choice = await promptUnsaved(msg);
+            ? translate("page.unsavedChangesOne", { name: dirty[0].fileName })
+            : translate("page.unsavedChangesMany", { count: dirty.length });
+        const choice = await promptUnsaved(msg, translate("page.unsavedChangesTitle"));
         // Cancel, Escape, the close box and a dialog that fails all land here.
         // The old code quit on a dialog failure, which is the same data loss by
         // a different route (#160).
@@ -656,7 +668,7 @@
       // If still nothing, give the user explicit feedback — silence is confusing
       // when a menu item is the trigger.
       if (!get(updateAvailable)) {
-        alert("MDHero is up to date.");
+        alert(translate("page.upToDate"));
       }
     };
     // Router for AI Lookup right-click menu items. lib.rs::setup forwards any
@@ -1204,17 +1216,18 @@
   <PasteModal bind:visible={pasteVisible} defaultMode={pasteDefaultMode} />
   <OpenDialog bind:visible={openVisible} />
   <SettingsDialog bind:visible={settingsVisible} />
+  <LanguageDialog bind:visible={languageVisible} />
   <AboutDialog bind:visible={aboutVisible} />
   <CustomPromptModal bind:visible={customPromptVisible} selection={customPromptSelection} />
 
   <div class="doc-area">
   {#if !rendererReady}
     <div class="state-center">
-      <p class="state-text pulse">Loading renderer...</p>
+      <p class="state-text pulse">{$t('page.loadingRenderer')}</p>
     </div>
   {:else if $docStore.loading}
     <div class="state-center">
-      <p class="state-text pulse">Opening file...</p>
+      <p class="state-text pulse">{$t('page.openingFile')}</p>
     </div>
   {:else if $docStore.error}
     <div class="state-center">

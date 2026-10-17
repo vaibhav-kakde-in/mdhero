@@ -2,6 +2,7 @@
   import { splitSlides } from "$lib/renderer/slides";
   import { renderFull, stripFrontmatter } from "$lib/renderer/pipeline";
   import MarkdownRenderer from "./MarkdownRenderer.svelte";
+  import { t } from "$lib/i18n";
 
   let {
     content,
@@ -70,11 +71,11 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <div class="present-root" role="presentation">
-  <button class="present-close" onclick={onExit} title="Exit presentation (Esc)" aria-label="Exit presentation">
+  <button class="present-close" onclick={onExit} title={$t('presentation.exitTitle')} aria-label={$t('presentation.exitAria')}>
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
   </button>
 
-  <button class="nav-edge left" onclick={() => go(-1)} disabled={current === 0} aria-label="Previous slide">
+  <button class="nav-edge left" onclick={() => go(-1)} disabled={current === 0} aria-label={$t('presentation.prevAria')}>
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,4 7,12 15,20"/></svg>
   </button>
 
@@ -89,7 +90,7 @@
     {/if}
   </div>
 
-  <button class="nav-edge right" onclick={() => go(1)} disabled={current >= total - 1} aria-label="Next slide">
+  <button class="nav-edge right" onclick={() => go(1)} disabled={current >= total - 1} aria-label={$t('presentation.nextAria')}>
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,4 17,12 9,20"/></svg>
   </button>
 </div>

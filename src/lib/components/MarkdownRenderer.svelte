@@ -5,6 +5,7 @@
   import { settings, fontFamilyMap, getContentMaxWidth } from "$lib/stores/settings";
   import { tocEntries, activeHeadingId, extractToc, isObserverPaused } from "$lib/stores/toc";
   import { aiLookup, setPendingSelection } from "$lib/stores/aiLookup";
+  import { t, translate } from "$lib/i18n";
   import mermaid from "mermaid";
   import DOMPurify from "dompurify";
   import { MERMAID_SANITIZE_CONFIG } from "$lib/renderer/mermaid-sanitize";
@@ -155,6 +156,18 @@
     invoke("show_ai_context_menu", {
       providers,
       hasSelection: selection.trim().length > 0,
+      // Localized labels — the menu is built in Rust, which has no access to
+      // the frontend i18n tables, so we pass the strings across (same pattern
+      // as set_menu_language for the menu bar).
+      labels: {
+        searchGoogle: translate("contextMenu.searchGoogle"),
+        ask: translate("contextMenu.ask"),
+        noPrompts: translate("contextMenu.noPrompts"),
+        customPrompt: translate("contextMenu.customPrompt"),
+        cut: translate("menu.cut"),
+        copy: translate("menu.copy"),
+        paste: translate("menu.paste"),
+      },
     }).catch((err) => console.error("show_ai_context_menu failed:", err));
   }
 
@@ -202,6 +215,12 @@
       // Render Mermaid diagrams
       renderMermaidBlocks();
     });
+  });
+
+  // The copy buttons are plain DOM, so relabel them when the language changes.
+  $effect(() => {
+    const label = $t("markdown.copy");
+    articleEl?.querySelectorAll(".code-copy-btn").forEach((btn) => (btn.textContent = label));
   });
 
   function addImageClickHandlers() {
@@ -294,13 +313,13 @@
 
       const btn = document.createElement("button");
       btn.className = "code-copy-btn";
-      btn.textContent = "Copy";
+      btn.textContent = translate("markdown.copy");
       btn.addEventListener("click", () => {
         const code = pre.querySelector("code");
         const text = code?.textContent ?? pre.textContent ?? "";
         navigator.clipboard.writeText(text).then(() => {
-          btn.textContent = "Copied!";
-          setTimeout(() => (btn.textContent = "Copy"), 1500);
+          btn.textContent = translate("markdown.copied");
+          setTimeout(() => (btn.textContent = translate("markdown.copy")), 1500);
         });
       });
 

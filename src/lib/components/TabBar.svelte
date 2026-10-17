@@ -16,6 +16,7 @@
   import { createDelayedCall } from "$lib/utils/delayed-call";
   import { stripVerbatimPrefix, tabFolderLabel, tabsNeedingFolder } from "$lib/utils/path";
   import PanelResizer from "./PanelResizer.svelte";
+  import { translate, t } from "$lib/i18n";
 
   let {
     onCloseTab = (id: string) => tabStore.closeTab(id),
@@ -144,11 +145,19 @@
     // shut this one.
     closeAfterFeedback.cancel();
     // Beside a side tab near the bottom of the window, the menu would run past
-    // the bottom edge: lift it until it fits.
+    // the bottom edge, and a translated menu wider than 160px can run past the
+    // right edge: move it back inside.
     await tick();
     if (!contextMenuEl) return;
-    const overflow = contextMenuEl.getBoundingClientRect().bottom - (window.innerHeight - 8);
-    if (overflow > 0) contextMenuPos = { ...contextMenuPos, y: Math.max(8, contextMenuPos.y - overflow) };
+    const box = contextMenuEl.getBoundingClientRect();
+    const overflowX = box.right - (window.innerWidth - 8);
+    const overflowY = box.bottom - (window.innerHeight - 8);
+    if (overflowX > 0 || overflowY > 0) {
+      contextMenuPos = {
+        x: Math.max(8, contextMenuPos.x - Math.max(0, overflowX)),
+        y: Math.max(8, contextMenuPos.y - Math.max(0, overflowY)),
+      };
+    }
   }
 
   function closeContextMenu() {
@@ -163,7 +172,7 @@
     if (!contextMenuTab) return;
     const copy = item === "path" ? copyPath : copyFileName;
     const success = await copy(contextMenuTab.filePath);
-    copyFeedback = { item, text: success ? "Copied!" : "Failed" };
+    copyFeedback = { item, text: success ? translate("common.copied") : translate("common.copyFailed") };
     closeAfterFeedback.schedule();
   }
 
@@ -176,7 +185,7 @@
       closeContextMenu();
     } catch (err) {
       console.error("revealItemInDir failed:", err);
-      copyFeedback = { item: "reveal", text: "Failed" };
+      copyFeedback = { item: "reveal", text: translate("tabbar.openFileLocationFailed") };
       closeAfterFeedback.schedule();
     }
   }
@@ -207,7 +216,7 @@
 <svelte:window onkeydowncapture={handleMenuKeydown} />
 
 {#snippet tabName(tab: Tab)}
-  {#if tab.diskChanged}<span class="tab-disk" title="Changed on disk while you were editing">⟳</span>{:else if tab.dirty}<span class="tab-dirty" title="Unsaved changes">•</span>{/if}{tab.fileName}
+  {#if tab.diskChanged}<span class="tab-disk" title={$t('tabbar.diskChanged')}>⟳</span>{:else if tab.dirty}<span class="tab-dirty" title={$t('tabbar.unsaved')}>•</span>{/if}{tab.fileName}
 {/snippet}
 
 <div class="tabbar" class:side>
@@ -224,7 +233,7 @@
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
         <path d="M2 6.5L7 2l5 4.5V12H9V9H5v3H2V6.5z"/>
       </svg>
-      {#if side}<span class="tab-label">Home</span>{/if}
+      {#if side}<span class="tab-label">{$t('tabbar.home')}</span>{/if}
     </div>
 
     <!-- File tabs -->
@@ -244,7 +253,7 @@
           {#if side && withFolder.has(tab.id)}
             <span class="tab-text">
               <span class="tab-label">{@render tabName(tab)}</span>
-              <span class="tab-folder">{tabFolderLabel(tab.filePath)}</span>
+              <span class="tab-folder">{tabFolderLabel(tab.filePath, $t)}</span>
             </span>
           {:else}
             <span class="tab-label">{@render tabName(tab)}</span>
@@ -264,18 +273,18 @@
     </div>
 
     <!-- New tab button -->
-    <button class="new-tab-btn" onclick={handleNewTab} title="New tab">
+    <button class="new-tab-btn" onclick={handleNewTab} title={$t('tabbar.newTab')}>
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
         <line x1="6" y1="2" x2="6" y2="10"/>
         <line x1="2" y1="6" x2="10" y2="6"/>
       </svg>
-      {#if side}<span>New tab</span>{/if}
+      {#if side}<span>{$t('tabbar.newTab')}</span>{/if}
     </button>
     <button
       class="layout-btn"
       onclick={toggleTabsPosition}
-      title={side ? "Show tabs at the top" : "Show tabs on the side"}
-      aria-label={side ? "Show tabs at the top" : "Show tabs on the side"}
+      title={side ? $t('tabbar.showTabsTopTitle') : $t('tabbar.showTabsSideTitle')}
+      aria-label={side ? $t('tabbar.showTabsTopTitle') : $t('tabbar.showTabsSideTitle')}
     >
       {#if side}<PanelTop size={14} />{:else}<PanelLeft size={14} />{/if}
     </button>
@@ -292,7 +301,7 @@
     maxWidth={() => maxTabsWidthFor(availableWidth())}
     cssVar="--tabs-w"
     resizingClass="tabs-resizing"
-    label="Resize tabs panel"
+    label={$t('tabbar.resize')}
     left="calc(var(--tabs-w, 220px) - 3px)"
     top="var(--chrome-top, 44px)"
     zIndex={15}
@@ -306,22 +315,22 @@
   <div bind:this={contextMenuEl} class="dropdown" style="left: {contextMenuPos.x}px; top: {contextMenuPos.y}px;">
     {#if isFileTab(contextMenuTab)}
       <button onclick={() => handleCopy("name")} class="dropdown-item">
-        <span>{copyFeedback?.item === "name" ? copyFeedback.text : "Copy File Name"}</span>
+        <span>{copyFeedback?.item === "name" ? copyFeedback.text : $t('tabbar.copyFileName')}</span>
       </button>
       <button onclick={() => handleCopy("path")} class="dropdown-item">
-        <span>{copyFeedback?.item === "path" ? copyFeedback.text : "Copy Path"}</span>
+        <span>{copyFeedback?.item === "path" ? copyFeedback.text : $t('tabbar.copyPath')}</span>
       </button>
       <button onclick={handleReveal} class="dropdown-item">
-        <span>{copyFeedback?.item === "reveal" ? copyFeedback.text : "Open File Location"}</span>
+        <span>{copyFeedback?.item === "reveal" ? copyFeedback.text : $t('tabbar.openFileLocation')}</span>
       </button>
       <div class="dropdown-separator"></div>
     {/if}
     <button onclick={handleCloseFromMenu} class="dropdown-item">
-      <span>Close Tab</span>
+      <span>{$t('menu.closeTab')}</span>
     </button>
     <div class="dropdown-separator"></div>
     <button onclick={handleTogglePositionFromMenu} class="dropdown-item">
-      <span>{side ? "Show Tabs at the Top" : "Show Tabs on the Side"}</span>
+      <span>{side ? $t('tabbar.showTabsTop') : $t('tabbar.showTabsSide')}</span>
     </button>
   </div>
 {/if}
@@ -620,7 +629,9 @@
 
   .dropdown {
     position: fixed;
-    width: 160px;
+    /* As wide as the longest entry, so translated labels stay on one line. */
+    min-width: 160px;
+    width: max-content;
     background: white;
     border: 1px solid #e5e5e5;
     border-radius: 8px;

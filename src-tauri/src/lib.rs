@@ -135,6 +135,7 @@ pub fn run() {
             get_opened_files,
             single_window::get_open_in_existing_window,
             single_window::set_open_in_existing_window,
+            menu::set_menu_language,
         ])
         .setup(|app| {
             let handle = app.handle().clone();

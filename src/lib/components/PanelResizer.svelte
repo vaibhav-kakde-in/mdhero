@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy, untrack } from "svelte";
+  import { t } from "$lib/i18n";
 
   // The drag handle on the right edge of a fixed left panel: the table of
   // contents (#108) and the side tabs panel. The panel's width lives in a CSS
@@ -216,7 +217,7 @@
   aria-valuemin={min}
   aria-valuemax={ceiling}
   tabindex="0"
-  title="Drag to resize — double-click to reset"
+  title={$t('common.resizeHint')}
   onpointerdown={startResize}
   onkeydown={handleKeydown}
   onkeyup={handleKeyup}

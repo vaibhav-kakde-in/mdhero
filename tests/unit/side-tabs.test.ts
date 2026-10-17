@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
   clampTabsWidth,
   maxTabsWidthFor,
@@ -9,6 +9,7 @@ import {
 } from "../../src/lib/stores/settings";
 import { sideTabsWidth } from "../../src/lib/utils/layout";
 import { tabFolderLabel, tabsNeedingFolder } from "../../src/lib/utils/path";
+import { setLocale, translate } from "../../src/lib/i18n";
 
 // The side tabs panel is sized by the same rules as the ToC sidebar (#108):
 // a drag or a stored value can never collapse it or let it cover the document.
@@ -49,37 +50,49 @@ describe("sideTabsWidth", () => {
 });
 
 describe("tabFolderLabel", () => {
+  // English, rather than the OS language of the machine running the tests.
+  beforeEach(() => setLocale("en"));
+  const label = (filePath: string) => tabFolderLabel(filePath, translate);
+
   it("shows the folder under the home directory as ~ on every platform", () => {
-    expect(tabFolderLabel("/Users/ada/notes/todo.md")).toBe("~/notes");
-    expect(tabFolderLabel("/home/ada/notes/todo.md")).toBe("~/notes");
-    expect(tabFolderLabel("C:\\Users\\ada\\notes\\todo.md")).toBe("~/notes");
+    expect(label("/Users/ada/notes/todo.md")).toBe("~/notes");
+    expect(label("/home/ada/notes/todo.md")).toBe("~/notes");
+    expect(label("C:\\Users\\ada\\notes\\todo.md")).toBe("~/notes");
   });
 
   it("shows a file directly in the home directory as ~", () => {
-    expect(tabFolderLabel("/Users/ada/todo.md")).toBe("~");
-    expect(tabFolderLabel("C:\\Users\\ada\\todo.md")).toBe("~");
+    expect(label("/Users/ada/todo.md")).toBe("~");
+    expect(label("C:\\Users\\ada\\todo.md")).toBe("~");
   });
 
   it("keeps only the last two folders of a deep path", () => {
-    expect(tabFolderLabel("/Users/ada/dev/mdhero/docs/README.md")).toBe("…/mdhero/docs");
-    expect(tabFolderLabel("D:\\work\\client\\specs\\api\\README.md")).toBe("…/specs/api");
+    expect(label("/Users/ada/dev/mdhero/docs/README.md")).toBe("…/mdhero/docs");
+    expect(label("D:\\work\\client\\specs\\api\\README.md")).toBe("…/specs/api");
   });
 
   it("keeps a short path outside the home directory whole", () => {
-    expect(tabFolderLabel("/tmp/x.md")).toBe("/tmp");
-    expect(tabFolderLabel("D:\\notes\\x.md")).toBe("D:/notes");
-    expect(tabFolderLabel("/x.md")).toBe("/");
+    expect(label("/tmp/x.md")).toBe("/tmp");
+    expect(label("D:\\notes\\x.md")).toBe("D:/notes");
+    expect(label("/x.md")).toBe("/");
   });
 
   it("drops Windows' verbatim prefix", () => {
-    expect(tabFolderLabel("\\\\?\\C:\\Users\\ada\\notes\\todo.md")).toBe("~/notes");
+    expect(label("\\\\?\\C:\\Users\\ada\\notes\\todo.md")).toBe("~/notes");
   });
 
   it("names the tabs that have no file", () => {
-    expect(tabFolderLabel("paste://1716000000000")).toBe("Pasted");
-    expect(tabFolderLabel("new://1716000000000")).toBe("Not saved yet");
-    expect(tabFolderLabel("url://https://github.com/a/b/blob/main/README.md")).toBe("github.com");
-    expect(tabFolderLabel("url://not a url")).toBe("Web page");
+    expect(label("paste://1716000000000")).toBe("Pasted");
+    expect(label("new://1716000000000")).toBe("Not saved yet");
+    expect(label("url://https://github.com/a/b/blob/main/README.md")).toBe("github.com");
+    expect(label("url://not a url")).toBe("Web page");
+  });
+
+  it("names them in the interface language", () => {
+    setLocale("fr");
+    expect(label("paste://1716000000000")).toBe("Collé");
+    expect(label("new://1716000000000")).toBe("Pas encore enregistré");
+    expect(label("url://not a url")).toBe("Page web");
+    expect(label("/tmp/x.md")).toBe("/tmp");
   });
 });
 

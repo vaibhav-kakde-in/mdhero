@@ -7,6 +7,7 @@
     resetSearch,
   } from "$lib/stores/search";
   import { cycleIndex } from "$lib/utils/text-search";
+  import { t } from "$lib/i18n";
 
   let { visible = $bindable(false) }: { visible: boolean } = $props();
 
@@ -143,7 +144,7 @@
       bind:this={inputEl}
       bind:value={$searchQuery}
       type="text"
-      placeholder="Find in document..."
+      placeholder={$t('search.placeholder')}
       class="search-input"
     />
 
@@ -156,15 +157,15 @@
     </span>
 
     <div class="search-nav">
-      <button onclick={prevMatch} disabled={$searchTotal === 0} class="search-nav-btn" title="Previous (Shift+Enter)">
+      <button onclick={prevMatch} disabled={$searchTotal === 0} class="search-nav-btn" title={$t('search.prevTitle')}>
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="2,8 6,4 10,8"/></svg>
       </button>
-      <button onclick={nextMatch} disabled={$searchTotal === 0} class="search-nav-btn" title="Next (Enter)">
+      <button onclick={nextMatch} disabled={$searchTotal === 0} class="search-nav-btn" title={$t('search.nextTitle')}>
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="2,4 6,8 10,4"/></svg>
       </button>
     </div>
 
-    <button onclick={close} class="search-close" title="Close (Esc)">
+    <button onclick={close} class="search-close" title={$t('search.closeTitle')}>
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
     </button>
   </div>

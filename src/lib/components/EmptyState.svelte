@@ -8,6 +8,7 @@
   import { settings, stepFontSize, DEFAULT_FONT_SIZE } from "../stores/settings";
   import UpdateBanner from "./UpdateBanner.svelte";
   import { basename, shortenHomePath } from "$lib/utils/path";
+  import { t, formatRelativeTime } from "$lib/i18n";
   import brandLogo from "$lib/assets/mdhero-icon.png";
 
   let { onOpenUrl = () => {} }: { onOpenUrl?: () => void } = $props();
@@ -77,15 +78,7 @@
 
 
   function formatTime(ts: number): string {
-    const diff = Date.now() - ts;
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "Just now";
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d ago`;
-    return new Date(ts).toLocaleDateString();
+    return formatRelativeTime(ts, $t);
   }
 
 
@@ -103,7 +96,7 @@
     <img src={brandLogo} alt="MDHero" width="48" height="48" class="hero-logo" />
     <div class="hero-text">
       <h1 class="hero-title">MDHero</h1>
-      <p class="hero-desc">A native Markdown reader and editor.</p>
+      <p class="hero-desc">{$t('empty.description')}</p>
     </div>
   </div>
 
@@ -132,19 +125,19 @@
   <div class="quick-actions">
     <button class="qa-btn qa-primary" onclick={newDocument}>
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 1.5h6l3 3v9H3V1.5z"/><line x1="7.5" y1="6" x2="7.5" y2="11"/><line x1="5" y1="8.5" x2="10" y2="8.5"/></svg>
-      New Document
+      {$t('empty.newDocument')}
     </button>
     <button class="qa-btn" onclick={openFileDialog}>
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 5l3-2.5h9v10H1.5V5z"/><line x1="1.5" y1="5" x2="4.5" y2="5"/></svg>
-      Browse Files
+      {$t('empty.browseFiles')}
     </button>
     <button class="qa-btn" onclick={onOpenUrl}>
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="7.5" r="5.5"/><ellipse cx="7.5" cy="7.5" rx="2.5" ry="5.5"/><line x1="2" y1="7.5" x2="13" y2="7.5"/></svg>
-      Open URL
+      {$t('empty.openUrl')}
     </button>
     <button class="qa-btn" onclick={addPinnedFolder}>
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><line x1="7.5" y1="3" x2="7.5" y2="12"/><line x1="3" y1="7.5" x2="12" y2="7.5"/></svg>
-      Pin Folder
+      {$t('empty.pinFolder')}
     </button>
   </div>
 
@@ -152,8 +145,8 @@
   {#snippet recentsSection(twoCol: boolean)}
     <div class="section recents-section">
       <div class="section-header">
-        <h2 class="section-title">Recent Files</h2>
-        <button class="section-action" onclick={() => { clearRecentFiles(); }}>Clear</button>
+        <h2 class="section-title">{$t('empty.recentFiles')}</h2>
+        <button class="section-action" onclick={() => { clearRecentFiles(); }}>{$t('empty.clear')}</button>
       </div>
       <div class="card card-scroll uniform-card">
         <div class="recents-grid" class:two-col={twoCol}>
@@ -181,10 +174,10 @@
           <div class="section-header">
             <h2 class="section-title">
               <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><rect x="2" y="1" width="10" height="12" rx="1.5"/><polyline points="5,5 6.5,6.5 9,4"/><line x1="4.5" y1="8.5" x2="9.5" y2="8.5"/><line x1="4.5" y1="10.5" x2="8" y2="10.5"/></svg>
-              Claude Plans
+              {$t('empty.claudePlans')}
             </h2>
             <span class="section-count">{plans.length}</span>
-            <button class="section-close" onclick={hidePlans} title="Hide Claude Plans">
+            <button class="section-close" onclick={hidePlans} title={$t('empty.hidePlans')}>
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="2" y1="2" x2="8" y2="8"/><line x1="8" y1="2" x2="2" y2="8"/></svg>
             </button>
           </div>
@@ -204,15 +197,15 @@
               {basename(folder)}
             </h2>
             <span class="section-count">{folderFiles[folder]?.length ?? '...'}</span>
-            <button class="section-action unpin" onclick={(e) => removePinnedFolder(e, folder)} title="Unpin">
+            <button class="section-action unpin" onclick={(e) => removePinnedFolder(e, folder)} title={$t('empty.unpin')}>
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="2" y1="2" x2="8" y2="8"/><line x1="8" y1="2" x2="2" y2="8"/></svg>
             </button>
           </div>
           <div class="card card-scroll uniform-card">
             {#if !folderFiles[folder]}
-              <div class="card-empty">Loading...</div>
+              <div class="card-empty">{$t('common.loading')}</div>
             {:else if folderFiles[folder].length === 0}
-              <div class="card-empty">No markdown files</div>
+              <div class="card-empty">{$t('empty.noMarkdown')}</div>
             {:else}
               {#each folderFiles[folder] as file (file.path)}
                 {@render fileRow(file.name, file.rel_path !== file.name ? file.rel_path : '', formatTime(file.modified), () => openFile(file.path), 'file')}
@@ -227,17 +220,17 @@
   <!-- Footer -->
   <div class="footer-row">
     <div class="footer-hint">
-      <kbd>{MOD}+O</kbd> browse &middot; <kbd>{MOD}+Shift+V</kbd> paste &middot; <kbd>{MOD}+T</kbd> new tab
+      <kbd>{MOD}+O</kbd> {$t('empty.footerBrowse')} &middot; <kbd>{MOD}+Shift+V</kbd> {$t('empty.footerPaste')} &middot; <kbd>{MOD}+T</kbd> {$t('empty.footerNewTab')}
       {#if plansHidden && plans.length > 0}
-        &middot; <button class="footer-link" onclick={showPlans}>Show Claude Plans</button>
+        &middot; <button class="footer-link" onclick={showPlans}>{$t('empty.showPlans')}</button>
       {/if}
     </div>
     <div class="zoom-controls">
-      <button class="zoom-btn" onclick={() => settings.update((s) => ({ ...s, fontSize: stepFontSize(s.fontSize, -1) }))} title="Zoom out">
+      <button class="zoom-btn" onclick={() => settings.update((s) => ({ ...s, fontSize: stepFontSize(s.fontSize, -1) }))} title={$t('empty.zoomOut')}>
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="2" y1="6" x2="10" y2="6"/></svg>
       </button>
       <span class="zoom-label">{$settings.fontSize}px</span>
-      <button class="zoom-btn" onclick={() => settings.update((s) => ({ ...s, fontSize: stepFontSize(s.fontSize, 1) }))} title="Zoom in">
+      <button class="zoom-btn" onclick={() => settings.update((s) => ({ ...s, fontSize: stepFontSize(s.fontSize, 1) }))} title={$t('empty.zoomIn')}>
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="6" y1="2" x2="6" y2="10"/><line x1="2" y1="6" x2="10" y2="6"/></svg>
       </button>
     </div>

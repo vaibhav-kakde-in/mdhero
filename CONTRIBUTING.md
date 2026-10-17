@@ -77,6 +77,10 @@ pnpm check              # TypeScript type checking
 - TypeScript strict mode. Avoid `any` unless interfacing with untyped external code.
 - No external state libraries — use Svelte stores.
 
+### Translations
+- UI text lives in `src/lib/i18n/locales/*.json`, with `en.json` as the source. Use `{$t("section.key")}` in templates and `translate("section.key")` in event handlers.
+- Add each new key to every locale file; a machine translation is fine as a start. `tests/unit/i18n.test.ts` fails when a locale is missing a key or a `{placeholder}`.
+
 ### Backend (Rust / Tauri)
 - Tauri v2 commands via `#[tauri::command]`.
 - New IPC commands need matching permissions in `src-tauri/capabilities/default.json`.
