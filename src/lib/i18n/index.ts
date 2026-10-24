@@ -23,6 +23,7 @@ import de from "./locales/de.json";
 import es from "./locales/es.json";
 import fr from "./locales/fr.json";
 import zhCN from "./locales/zh-CN.json";
+import ru from "./locales/ru.json";
 import type { MessageKey, MessageParams } from "./types";
 
 export type { MessageKey, MessageParams } from "./types";
@@ -35,6 +36,7 @@ export const SUPPORTED_LOCALES = [
   { code: "es", label: "Spanish", nativeName: "Español" },
   { code: "fr", label: "French", nativeName: "Français" },
   { code: "zh-CN", label: "Chinese (Simplified)", nativeName: "简体中文" },
+  { code: "ru", label: "Russian", nativeName: "Русский" },
 ] as const;
 
 export type Locale = (typeof SUPPORTED_LOCALES)[number]["code"];
@@ -59,6 +61,7 @@ const messages: Record<Locale, Record<string, string>> = {
   es: flatten(es),
   fr: flatten(fr),
   "zh-CN": flatten(zhCN),
+  ru: flatten(ru),
 };
 
 const pluralRules = new Map<Locale, Intl.PluralRules>();

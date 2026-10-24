@@ -5,6 +5,7 @@ import de from "../../src/lib/i18n/locales/de.json";
 import es from "../../src/lib/i18n/locales/es.json";
 import fr from "../../src/lib/i18n/locales/fr.json";
 import zhCN from "../../src/lib/i18n/locales/zh-CN.json";
+import ru from "../../src/lib/i18n/locales/ru.json";
 
 const LOCALE_KEY = "mdhero_locale";
 
@@ -43,7 +44,7 @@ const placeholders = (s: string) => (s.match(/\{\w+\}/g) ?? []).sort();
 
 describe("locale dictionaries", () => {
   const base = messages(en);
-  const dictionaries: Record<string, Dict> = { de, es, fr, "zh-CN": zhCN };
+  const dictionaries: Record<string, Dict> = { de, es, fr, "zh-CN": zhCN, ru };
 
   for (const [code, dict] of Object.entries(dictionaries)) {
     const own = messages(dict);
