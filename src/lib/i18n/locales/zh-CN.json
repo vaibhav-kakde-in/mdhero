@@ -59,7 +59,12 @@
     "pdfTitle": "导出 PDF",
     "settings": "设置 ({mod}+,)",
     "settingsAria": "设置",
-    "theme": "切换主题"
+    "pageTheme": "页面主题：{mode}",
+    "interfaceTheme": "界面主题：{mode}",
+    "themeSystem": "跟随系统",
+    "themeSameAsInterface": "与界面相同",
+    "themeLight": "浅色",
+    "themeDark": "深色"
   },
   "statusbar": {
     "words": {

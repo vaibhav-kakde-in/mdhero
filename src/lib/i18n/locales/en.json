@@ -59,7 +59,12 @@
     "pdfTitle": "Export PDF",
     "settings": "Settings ({mod}+,)",
     "settingsAria": "Settings",
-    "theme": "Toggle theme"
+    "pageTheme": "Page theme: {mode}",
+    "interfaceTheme": "Interface theme: {mode}",
+    "themeSystem": "System",
+    "themeSameAsInterface": "Same as interface",
+    "themeLight": "Light",
+    "themeDark": "Dark"
   },
   "statusbar": {
     "words": {

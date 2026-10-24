@@ -59,7 +59,12 @@
     "pdfTitle": "Als PDF exportieren",
     "settings": "Einstellungen ({mod}+,)",
     "settingsAria": "Einstellungen",
-    "theme": "Design umschalten"
+    "pageTheme": "Design der Seite: {mode}",
+    "interfaceTheme": "Design der Oberfläche: {mode}",
+    "themeSystem": "System",
+    "themeSameAsInterface": "Wie die Oberfläche",
+    "themeLight": "Hell",
+    "themeDark": "Dunkel"
   },
   "statusbar": {
     "words": {

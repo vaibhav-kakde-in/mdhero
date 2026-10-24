@@ -59,7 +59,12 @@
     "pdfTitle": "Exportar PDF",
     "settings": "Configuración ({mod}+,)",
     "settingsAria": "Configuración",
-    "theme": "Cambiar tema"
+    "pageTheme": "Tema de la página: {mode}",
+    "interfaceTheme": "Tema de la interfaz: {mode}",
+    "themeSystem": "Sistema",
+    "themeSameAsInterface": "Igual que la interfaz",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro"
   },
   "statusbar": {
     "words": {

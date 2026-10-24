@@ -40,7 +40,7 @@
     border-bottom: 1px solid #e5e5ea;
   }
 
-  :global(html.dark) .fm-bar {
+  :global(html.page-dark) .fm-bar {
     border-bottom-color: #2c2c2e;
   }
 
@@ -63,7 +63,7 @@
     color: #636366;
   }
 
-  :global(html.dark) .fm-value {
+  :global(html.page-dark) .fm-value {
     color: #8e8e93;
   }
 
