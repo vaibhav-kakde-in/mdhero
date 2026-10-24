@@ -325,7 +325,9 @@
     "selectAll": "Tout sélectionner",
     "fullscreen": "Passer en plein écran",
     "minimize": "Réduire",
-    "maximize": "Agrandir"
+    "maximize": "Agrandir",
+    "hideMenuBar": "Masquer la barre de menus",
+    "showMenuBar": "Afficher la barre de menus"
   },
   "files": {
     "openFailed": "Impossible d'ouvrir le fichier : {err}",

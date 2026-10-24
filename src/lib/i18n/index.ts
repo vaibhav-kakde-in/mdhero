@@ -176,6 +176,8 @@ const MENU_KEYS = [
   "menu.window",
   "menu.minimize",
   "menu.maximize",
+  "menu.hideMenuBar",
+  "menu.showMenuBar",
 ] as const satisfies readonly MessageKey[];
 
 /** The locale last sent to the native menu (null after a failed push, so the

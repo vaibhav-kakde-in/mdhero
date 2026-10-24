@@ -325,7 +325,9 @@
     "selectAll": "Select All",
     "fullscreen": "Enter Full Screen",
     "minimize": "Minimize",
-    "maximize": "Maximize"
+    "maximize": "Maximize",
+    "hideMenuBar": "Hide Menu Bar",
+    "showMenuBar": "Show Menu Bar"
   },
   "files": {
     "openFailed": "Failed to open file: {err}",

@@ -51,6 +51,7 @@ Markdown is where developers, writers, and AI live today — READMEs, Claude Cod
 - **Math & diagrams** — KaTeX for equations, Mermaid for flowcharts
 - **Reader controls** — adjust font, size, line height, width
 - **Zen mode** — distraction-free full-screen reading
+- **Hide the menu bar (Windows)** — right-click the toolbar and pick Hide Menu Bar (Show Menu Bar brings it back); its shortcuts keep working
 - **Print/Export to PDF** — File › Print or Cmd/Ctrl+P opens the native print dialog (print to paper or to PDF), with clean print styles
 
 ### Editing (v0.2.0)

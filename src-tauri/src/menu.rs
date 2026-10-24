@@ -202,5 +202,14 @@ pub fn create_menu_with_labels<R: Runtime>(
 #[tauri::command]
 pub fn set_menu_language(app: tauri::AppHandle, labels: MenuLabels) -> Result<(), String> {
     let menu = create_menu_with_labels(&app, &labels).map_err(|e| e.to_string())?;
-    app.set_menu(menu).map(|_| ()).map_err(|e| e.to_string())
+    // On Windows the menu bar can be hidden (menu_bar.rs), and a new menu would
+    // show it again.
+    #[cfg(windows)]
+    {
+        crate::menu_bar::set_menu(&app, menu, &labels).map_err(|e| e.to_string())
+    }
+    #[cfg(not(windows))]
+    {
+        app.set_menu(menu).map(|_| ()).map_err(|e| e.to_string())
+    }
 }

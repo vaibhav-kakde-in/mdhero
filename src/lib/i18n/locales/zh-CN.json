@@ -323,7 +323,9 @@
     "selectAll": "全选",
     "fullscreen": "进入全屏",
     "minimize": "最小化",
-    "maximize": "最大化"
+    "maximize": "最大化",
+    "hideMenuBar": "隐藏菜单栏",
+    "showMenuBar": "显示菜单栏"
   },
   "files": {
     "openFailed": "无法打开文件：{err}",
