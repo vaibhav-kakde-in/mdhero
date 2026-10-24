@@ -4,8 +4,9 @@ import { openFile, pathExists } from "./files";
 
 /**
  * Reopen the previous run's tabs (#72): same files, same order, same active
- * tab. Files that no longer exist are skipped silently, and a file that fails
- * to open does not stop the rest. Returns how many tabs came back.
+ * tab, same tab groups. Files that no longer exist are skipped silently, and
+ * a file that fails to open does not stop the rest. Returns how many tabs
+ * came back.
  *
  * Runs before any "Open With" / CLI file so that one lands on top, active, the
  * way a browser handles a link clicked while it restores a session.
@@ -32,5 +33,9 @@ export async function restoreSession(): Promise<number> {
     tabStore.goHome();
   }
   // Else: the active file is gone; stay on the last one that came back.
+
+  // After the active tab is settled, so that only its group unfolds if it
+  // was saved folded.
+  if (saved.groups?.length) tabStore.restoreGroups(saved.groups);
   return restored;
 }

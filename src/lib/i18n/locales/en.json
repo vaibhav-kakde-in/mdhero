@@ -87,7 +87,30 @@
     "showTabsTop": "Show Tabs at the Top",
     "showTabsSideTitle": "Show tabs on the side",
     "showTabsTopTitle": "Show tabs at the top",
-    "resize": "Resize tabs panel"
+    "resize": "Resize tabs panel",
+    "addToNewGroup": "Add Tab to New Group",
+    "moveToNewGroup": "Move to New Group",
+    "addToGroup": "Add to {group}",
+    "moveToGroup": "Move to {group}",
+    "removeFromGroup": "Remove from Group",
+    "groupNamePlaceholder": "Name this group",
+    "groupName": "Group name",
+    "groupColor": "Group color",
+    "collapseGroup": "Collapse Group",
+    "expandGroup": "Expand Group",
+    "ungroup": "Ungroup",
+    "closeGroup": "Close Group",
+    "groupColors": {
+      "blue": "Blue",
+      "red": "Red",
+      "yellow": "Yellow",
+      "green": "Green",
+      "pink": "Pink",
+      "purple": "Purple",
+      "cyan": "Cyan",
+      "orange": "Orange",
+      "grey": "Grey"
+    }
   },
   "empty": {
     "description": "A native Markdown reader and editor.",

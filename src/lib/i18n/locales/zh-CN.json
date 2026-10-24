@@ -86,7 +86,30 @@
     "showTabsTop": "在顶部显示标签页",
     "showTabsSideTitle": "在侧边显示标签页",
     "showTabsTopTitle": "在顶部显示标签页",
-    "resize": "调整标签页面板宽度"
+    "resize": "调整标签页面板宽度",
+    "addToNewGroup": "将标签页添加到新组",
+    "moveToNewGroup": "移至新组",
+    "addToGroup": "添加到 {group}",
+    "moveToGroup": "移至 {group}",
+    "removeFromGroup": "从组中移除",
+    "groupNamePlaceholder": "为此组命名",
+    "groupName": "组名称",
+    "groupColor": "组颜色",
+    "collapseGroup": "收起组",
+    "expandGroup": "展开组",
+    "ungroup": "取消分组",
+    "closeGroup": "关闭组",
+    "groupColors": {
+      "blue": "蓝色",
+      "red": "红色",
+      "yellow": "黄色",
+      "green": "绿色",
+      "pink": "粉色",
+      "purple": "紫色",
+      "cyan": "青色",
+      "orange": "橙色",
+      "grey": "灰色"
+    }
   },
   "empty": {
     "description": "一款原生的 Markdown 阅读器与编辑器。",

@@ -87,7 +87,30 @@
     "showTabsTop": "Tabs oben anzeigen",
     "showTabsSideTitle": "Tabs seitlich anzeigen",
     "showTabsTopTitle": "Tabs oben anzeigen",
-    "resize": "Breite des Tab-Bereichs ändern"
+    "resize": "Breite des Tab-Bereichs ändern",
+    "addToNewGroup": "Tab zu neuer Gruppe hinzufügen",
+    "moveToNewGroup": "In neue Gruppe verschieben",
+    "addToGroup": "Zu {group} hinzufügen",
+    "moveToGroup": "Nach {group} verschieben",
+    "removeFromGroup": "Aus Gruppe entfernen",
+    "groupNamePlaceholder": "Gruppe benennen",
+    "groupName": "Gruppenname",
+    "groupColor": "Gruppenfarbe",
+    "collapseGroup": "Gruppe einklappen",
+    "expandGroup": "Gruppe ausklappen",
+    "ungroup": "Gruppierung aufheben",
+    "closeGroup": "Gruppe schließen",
+    "groupColors": {
+      "blue": "Blau",
+      "red": "Rot",
+      "yellow": "Gelb",
+      "green": "Grün",
+      "pink": "Rosa",
+      "purple": "Lila",
+      "cyan": "Cyan",
+      "orange": "Orange",
+      "grey": "Grau"
+    }
   },
   "empty": {
     "description": "Ein nativer Markdown-Reader und -Editor.",

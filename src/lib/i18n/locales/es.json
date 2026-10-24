@@ -87,7 +87,30 @@
     "showTabsTop": "Mostrar pestañas arriba",
     "showTabsSideTitle": "Mostrar pestañas al lado",
     "showTabsTopTitle": "Mostrar pestañas arriba",
-    "resize": "Cambiar el ancho del panel de pestañas"
+    "resize": "Cambiar el ancho del panel de pestañas",
+    "addToNewGroup": "Añadir pestaña a un grupo nuevo",
+    "moveToNewGroup": "Mover a un grupo nuevo",
+    "addToGroup": "Añadir a {group}",
+    "moveToGroup": "Mover a {group}",
+    "removeFromGroup": "Quitar del grupo",
+    "groupNamePlaceholder": "Nombra este grupo",
+    "groupName": "Nombre del grupo",
+    "groupColor": "Color del grupo",
+    "collapseGroup": "Contraer grupo",
+    "expandGroup": "Expandir grupo",
+    "ungroup": "Desagrupar",
+    "closeGroup": "Cerrar grupo",
+    "groupColors": {
+      "blue": "Azul",
+      "red": "Rojo",
+      "yellow": "Amarillo",
+      "green": "Verde",
+      "pink": "Rosa",
+      "purple": "Morado",
+      "cyan": "Cian",
+      "orange": "Naranja",
+      "grey": "Gris"
+    }
   },
   "empty": {
     "description": "Un lector y editor de Markdown nativo.",

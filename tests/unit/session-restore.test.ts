@@ -4,7 +4,8 @@ const openFile = vi.fn();
 const pathExists = vi.fn();
 const switchTab = vi.fn();
 const goHome = vi.fn();
-let saved: { paths: string[]; activePath: string | null } | null = null;
+const restoreGroups = vi.fn();
+let saved: { paths: string[]; activePath: string | null; groups?: unknown[] } | null = null;
 let tabs: { id: string; filePath: string }[] = [];
 
 vi.mock("../../src/lib/tauri/files", () => ({ openFile, pathExists }));
@@ -14,6 +15,7 @@ vi.mock("../../src/lib/stores/tabs", () => ({
     tabs: { subscribe: (run: (v: unknown) => void) => (run(tabs), () => {}) },
     switchTab,
     goHome,
+    restoreGroups,
   },
 }));
 
@@ -71,5 +73,21 @@ describe("restoreSession (#72)", () => {
 
     expect(await restoreSession()).toBe(2);
     expect(switchTab).toHaveBeenCalledWith("id:/d/c.md");
+  });
+
+  it("rebuilds the tab groups once the active tab is back", async () => {
+    const groups = [{ name: "Docs", color: "green", collapsed: true, paths: ["/d/a.md"] }];
+    saved = { paths: ["/d/a.md", "/d/b.md"], activePath: "/d/b.md", groups };
+
+    await restoreSession();
+    expect(restoreGroups).toHaveBeenCalledWith(groups);
+    // After the switch, so only the active tab's group unfolds.
+    expect(restoreGroups.mock.invocationCallOrder[0]).toBeGreaterThan(switchTab.mock.invocationCallOrder[0]);
+  });
+
+  it("has no groups to rebuild in a session saved without any", async () => {
+    saved = { paths: ["/d/a.md"], activePath: "/d/a.md" };
+    await restoreSession();
+    expect(restoreGroups).not.toHaveBeenCalled();
   });
 });

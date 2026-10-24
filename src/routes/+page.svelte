@@ -871,9 +871,10 @@
   }
 
   // Move the active tab by `delta` positions through the visible tab order
-  // ([Home, ...file tabs]), wrapping around at both ends.
+  // ([Home, ...file tabs], less those folded away in a tab group), wrapping
+  // around at both ends.
   function cycleTab(delta: number) {
-    const order = [HOME_TAB_ID, ...$tabs.map((t) => t.id)];
+    const order = [HOME_TAB_ID, ...tabStore.shownTabs().map((t) => t.id)];
     if (order.length <= 1) return;
     const current = order.indexOf($activeTabId ?? HOME_TAB_ID);
     const base = current === -1 ? 0 : current;
