@@ -319,6 +319,8 @@
     "closeTab": "Cerrar pestaña",
     "find": "Buscar...",
     "toggleTheme": "Cambiar tema",
+    "undo": "Deshacer",
+    "redo": "Rehacer",
     "cut": "Cortar",
     "copy": "Copiar",
     "paste": "Pegar",

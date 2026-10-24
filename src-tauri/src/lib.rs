@@ -173,6 +173,12 @@ pub fn run() {
                         "find" => {
                             let _ = window.eval("window.__mdhero_find?.()");
                         }
+                        "undo" => {
+                            let _ = window.eval("window.__mdhero_undo?.()");
+                        }
+                        "redo" => {
+                            let _ = window.eval("window.__mdhero_redo?.()");
+                        }
                         "close" => {
                             let _ = window.eval("window.__mdhero_close_tab?.()");
                         }

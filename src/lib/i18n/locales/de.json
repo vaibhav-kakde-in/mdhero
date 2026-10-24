@@ -319,6 +319,8 @@
     "closeTab": "Tab schließen",
     "find": "Suchen...",
     "toggleTheme": "Design wechseln",
+    "undo": "Widerrufen",
+    "redo": "Wiederholen",
     "cut": "Ausschneiden",
     "copy": "Kopieren",
     "paste": "Einfügen",

@@ -57,6 +57,7 @@ Markdown is where developers, writers, and AI live today — READMEs, Claude Cod
 - **Lightweight in-app editor** — `Cmd+E` flips any local file into edit mode
 - **Markdown highlighting** — headings, emphasis, links, lists, quotes and code are colored as you type, in light and dark (Settings › Editor to turn it off)
 - **Save with `Cmd+S`** — writes back to disk; the file watcher knows it was you and skips the reload
+- **Undo and redo** — `Cmd+Z` / `Shift+Cmd+Z` (also `Ctrl+Y` on Windows and Linux), a word at a time, with a separate history for each tab that survives switching tabs, toggling edit mode and saving
 - **Stays where you were** — source-line scroll sync keeps your position across viewer ↔ raw ↔ edit
 - **Dirty indicator** — `•` in the tab title and toolbar when you have unsaved changes
 - **Per-tab edit state** — switch tabs and back; your edits are right where you left them
@@ -140,6 +141,7 @@ Or build from source (see below).
 | `Cmd+F` | Find in document |
 | `Cmd+E` | Toggle edit mode |
 | `Cmd+S` | Save edits to disk |
+| `Cmd+Z` / `Shift+Cmd+Z` | Undo / redo an edit |
 | `Cmd+U` | Toggle raw markdown view |
 | `Cmd+Shift+F` | Zen mode |
 | `Cmd+=` / `Cmd+-` | Zoom in / out |

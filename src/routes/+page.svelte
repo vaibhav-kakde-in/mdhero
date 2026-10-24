@@ -615,6 +615,16 @@
     (window as any).__mdhero_find = () => {
       searchVisible = !searchVisible;
     };
+    // Edit > Undo / Redo on Linux, where muda has no built-in items (menu.rs).
+    // The editor keeps its own history and claims the event; any other field
+    // falls back to the browser's undo.
+    const historyCommand = (command: "undo" | "redo") => {
+      const el = document.activeElement;
+      const claimed = el && !el.dispatchEvent(new CustomEvent("mdherohistory", { detail: command, cancelable: true }));
+      if (!claimed) document.execCommand(command);
+    };
+    (window as any).__mdhero_undo = () => historyCommand("undo");
+    (window as any).__mdhero_redo = () => historyCommand("redo");
     // File > Close Tab (Cmd/Ctrl+W). The menu item declared this accelerator
     // but lib.rs had no branch for its id, so the event was dropped — and
     // because the native menu consumes the key, the keydown fallback never ran
@@ -1259,6 +1269,7 @@
         <Editor
           value={activeTab.editContent}
           onChange={(v) => tabStore.updateEditContent(activeTab!.id, v)}
+          historyKey={activeTab.id}
           fontSize={$settings.fontSize}
           lineHeight={$settings.lineHeight}
           maxWidth="100%"
@@ -1280,6 +1291,7 @@
         <Editor
           value={activeTab.editContent}
           onChange={(v) => tabStore.updateEditContent(activeTab!.id, v)}
+          historyKey={activeTab.id}
           fontSize={$settings.fontSize}
           lineHeight={$settings.lineHeight}
           maxWidth={contentMaxWidth}

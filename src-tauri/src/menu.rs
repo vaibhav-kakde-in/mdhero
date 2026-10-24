@@ -111,11 +111,24 @@ pub fn create_menu_with_labels<R: Runtime>(
         ],
     )?;
 
+    // Undo / Redo (#182). Plain items on every platform that ask the frontend,
+    // which answers from the editor's own history. muda's built-in items don't
+    // work here: Linux has none, macOS's `undo:` never reaches the editor as a
+    // `historyUndo` beforeinput in WKWebView (the menu click did nothing), and
+    // Windows' only replays a Ctrl+Z keystroke. No accelerator: the menu would
+    // take Cmd/Ctrl+Z away from the webview, where every text field already
+    // handles it.
+    let undo = MenuItem::with_id(app, "undo", tr(labels, "menu.undo", "Undo"), true, None::<&str>)?;
+    let redo = MenuItem::with_id(app, "redo", tr(labels, "menu.redo", "Redo"), true, None::<&str>)?;
+
     let edit_menu = Submenu::with_items(
         app,
         tr(labels, "menu.edit", "Edit"),
         true,
         &[
+            &undo,
+            &redo,
+            &PredefinedMenuItem::separator(app)?,
             &PredefinedMenuItem::cut(app, predefined_label(labels, "menu.cut"))?,
             &PredefinedMenuItem::copy(app, predefined_label(labels, "menu.copy"))?,
             &PredefinedMenuItem::paste(app, predefined_label(labels, "menu.paste"))?,

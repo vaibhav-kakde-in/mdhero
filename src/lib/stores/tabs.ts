@@ -1,4 +1,5 @@
 import { writable, get } from "svelte/store";
+import { dropHistory } from "../utils/edit-history";
 
 export interface Tab {
   id: string;
@@ -146,6 +147,7 @@ function createTabStore() {
 
     const newTabs = currentTabs.filter((t) => t.id !== id);
     tabs.set(newTabs);
+    dropHistory(id);
 
     // If closing the active tab, switch to adjacent or home
     if (get(activeTabId) === id) {

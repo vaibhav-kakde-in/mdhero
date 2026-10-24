@@ -5,10 +5,13 @@
   import { gutterHtml as buildGutterHtml, gutterWidth as buildGutterWidth, lineCount as countLines } from "$lib/utils/line-gutter";
   import { highlightMarkdownLines } from "$lib/utils/markdown-highlight";
   import { patchLines } from "$lib/utils/line-patch";
+  import { diffText, editKind, historyFor, type HistoryState, type TextSelection } from "$lib/utils/edit-history";
+  import { isMac } from "$lib/utils/platform";
 
   let {
     value,
     onChange,
+    historyKey,
     fontSize = 14,
     lineHeight = 1.6,
     maxWidth = "720px",
@@ -18,6 +21,8 @@
   }: {
     value: string;
     onChange: (newValue: string) => void;
+    /** Whose undo history this editor uses: the tab id, so it outlives the editor. */
+    historyKey: string;
     fontSize?: number;
     lineHeight?: number;
     maxWidth?: string;
@@ -35,11 +40,15 @@
   // svelte-ignore state_referenced_locally
   let localValue = $state(value);
 
+  // svelte-ignore state_referenced_locally
+  const editHistory = historyFor(historyKey, value);
+
   // Keep local in sync if parent value changes from a different source
   // (e.g. external file reload while not editing — though unlikely while editor is mounted)
   $effect(() => {
     if (value !== localValue && document.activeElement !== textareaEl) {
       localValue = value;
+      editHistory.recordExternal(value);
     }
   });
 
@@ -135,6 +144,14 @@
   });
 
   onMount(() => {
+    // The native menu on Linux has no built-in Undo/Redo, so its items send
+    // this event to the focused element instead (see +page.svelte).
+    const onMenuHistory = (e: Event) => {
+      e.preventDefault();
+      if ((e as CustomEvent).detail === "redo") redo();
+      else undo();
+    };
+    textareaEl?.addEventListener("mdherohistory", onMenuHistory);
     tick().then(() => {
       try {
         textareaEl?.focus({ preventScroll: true });
@@ -162,27 +179,110 @@
     activeLine = localValue.slice(0, textareaEl.selectionStart).split("\n").length - 1;
   }
 
-  function handleInput() {
+  // --- Undo / redo (#182) -----------------------------------------------------
+  // Every edit goes into `editHistory`, and Cmd/Ctrl+Z, the Edit menu and the
+  // context menu all undo from it instead of from the textarea's own history.
+  // The app's own edits go through execCommand so the browser still treats them
+  // as editing (it scrolls the caret into view and keeps Undo enabled in the
+  // native menus); `applying` keeps them from being recorded twice.
+  let selectionBefore: TextSelection = { start: 0, end: 0 };
+  let applying = false;
+
+  function currentSelection(): TextSelection {
+    return { start: textareaEl?.selectionStart ?? 0, end: textareaEl?.selectionEnd ?? 0 };
+  }
+
+  /** Replaces `start`..`end` with `text` as a browser edit, falling back to setRangeText. */
+  function replaceRange(ta: HTMLTextAreaElement, start: number, end: number, text: string) {
+    applying = true;
+    try {
+      ta.setSelectionRange(start, end);
+      const done = text ? document.execCommand("insertText", false, text) : document.execCommand("delete");
+      if (!done) ta.setRangeText(text, start, end, "end");
+    } finally {
+      applying = false;
+    }
+  }
+
+  function afterChange() {
+    if (!textareaEl) return;
+    localValue = textareaEl.value;
     onChange(localValue);
     updateActiveLine();
     syncBackdropScroll();
   }
 
+  function restore(state: HistoryState | null) {
+    const ta = textareaEl;
+    if (!state || !ta) return;
+    ta.focus();
+    const { at, removed, inserted } = diffText(ta.value, state.text);
+    replaceRange(ta, at, at + removed.length, inserted);
+    if (ta.value !== state.text) ta.value = state.text;
+    ta.setSelectionRange(state.selection.start, state.selection.end);
+    afterChange();
+  }
+
+  function undo() {
+    restore(editHistory.undo());
+  }
+
+  function redo() {
+    restore(editHistory.redo());
+  }
+
+  function handleBeforeInput(e: InputEvent) {
+    // Undo/Redo from the native Edit menu or the right-click menu.
+    if (e.inputType === "historyUndo" || e.inputType === "historyRedo") {
+      e.preventDefault();
+      if (e.inputType === "historyUndo") undo();
+      else redo();
+      return;
+    }
+    if (!e.isComposing) selectionBefore = currentSelection();
+  }
+
+  function handleInput(e: Event) {
+    if (applying) return;
+    const ie = e as InputEvent;
+    // An IME composition is recorded once, when it ends.
+    if (!ie.isComposing) {
+      editHistory.record(textareaEl!.value, selectionBefore, currentSelection(), editKind(ie.inputType));
+    }
+    afterChange();
+  }
+
+  function handleCompositionEnd() {
+    editHistory.record(textareaEl!.value, selectionBefore, currentSelection(), "type");
+  }
+
+  /** The letter a shortcut was typed with, by layout or, on non-Latin layouts, by key position. */
+  function shortcutLetter(e: KeyboardEvent): string {
+    const key = e.key.toLowerCase();
+    if (/^[a-z]$/.test(key)) return key;
+    return e.code.startsWith("Key") ? e.code.slice(3).toLowerCase() : key;
+  }
+
   function handleKeydown(e: KeyboardEvent) {
+    const t = e.target as HTMLTextAreaElement;
+    if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+      const letter = shortcutLetter(e);
+      // Ctrl+Y is redo on Windows and Linux only; on macOS it's Emacs "yank".
+      if (letter === "z" || (letter === "y" && e.ctrlKey && !e.shiftKey && !isMac())) {
+        e.preventDefault();
+        if (letter === "y" || e.shiftKey) redo();
+        else undo();
+        return;
+      }
+    }
+
     // Tab inserts 2 spaces instead of moving focus
     if (e.key === "Tab" && !e.metaKey && !e.ctrlKey && !e.altKey) {
       e.preventDefault();
-      const t = e.target as HTMLTextAreaElement;
-      const start = t.selectionStart;
-      const end = t.selectionEnd;
-      const indent = "  ";
-      const newValue = t.value.slice(0, start) + indent + t.value.slice(end);
-      localValue = newValue;
-      onChange(newValue);
-      // Restore cursor after the inserted indent
-      tick().then(() => {
-        t.selectionStart = t.selectionEnd = start + indent.length;
-      });
+      const before = currentSelection();
+      replaceRange(t, before.start, before.end, "  ");
+      editHistory.record(t.value, before, currentSelection(), "other");
+      afterChange();
     }
   }
 </script>
@@ -222,7 +322,10 @@
     <textarea
       bind:this={textareaEl}
       bind:value={localValue}
+      onbeforeinput={handleBeforeInput}
       oninput={handleInput}
+      oncompositionstart={() => (selectionBefore = currentSelection())}
+      oncompositionend={handleCompositionEnd}
       onkeydown={handleKeydown}
       onkeyup={updateActiveLine}
       onclick={updateActiveLine}

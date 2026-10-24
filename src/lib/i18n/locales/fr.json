@@ -319,6 +319,8 @@
     "closeTab": "Fermer l'onglet",
     "find": "Rechercher...",
     "toggleTheme": "Changer de thème",
+    "undo": "Annuler",
+    "redo": "Rétablir",
     "cut": "Couper",
     "copy": "Copier",
     "paste": "Coller",

@@ -165,6 +165,8 @@ const MENU_KEYS = [
   "menu.print",
   "menu.closeTab",
   "menu.edit",
+  "menu.undo",
+  "menu.redo",
   "menu.cut",
   "menu.copy",
   "menu.paste",

@@ -319,6 +319,8 @@
     "closeTab": "Close Tab",
     "find": "Find...",
     "toggleTheme": "Toggle Theme",
+    "undo": "Undo",
+    "redo": "Redo",
     "cut": "Cut",
     "copy": "Copy",
     "paste": "Paste",
