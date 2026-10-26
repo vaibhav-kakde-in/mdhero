@@ -43,7 +43,7 @@ export function scrollToSourceLine(mode: ViewMode, line: number): void {
 // --- Viewer (rendered HTML with data-source-line stamps) ---
 
 function readViewerLine(): number {
-  const article = document.querySelector("article.prose");
+  const article = document.querySelector("article.md-content");
   if (!article) return 0;
   const elements = article.querySelectorAll<HTMLElement>("[data-source-line]");
   if (elements.length === 0) return 0;
@@ -66,7 +66,7 @@ function readViewerLine(): number {
 }
 
 function scrollViewerToLine(anchor: number): void {
-  const article = document.querySelector("article.prose");
+  const article = document.querySelector("article.md-content");
   if (!article) return;
   const elements = Array.from(article.querySelectorAll<HTMLElement>("[data-source-line]"));
   if (elements.length === 0) return;

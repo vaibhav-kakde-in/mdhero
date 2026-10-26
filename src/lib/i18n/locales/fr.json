@@ -57,6 +57,9 @@
     "pdfTitleNoFile": "Exporter en PDF (ouvrez d'abord un fichier)",
     "pdfTitleEditing": "Exporter en PDF (quittez le mode édition pour l'utiliser)",
     "pdfTitle": "Exporter en PDF",
+    "templateTitle": "Modèle de document",
+    "templateTitleNoFile": "Modèle de document (ouvrez d'abord un fichier)",
+    "templateFollowDocument": "Selon le document",
     "settings": "Paramètres ({mod}+,)",
     "settingsAria": "Paramètres",
     "theme": "Changer de thème"
@@ -211,7 +214,35 @@
     "aiLookup": "Recherche IA",
     "aiLookupHint": "Cliquez avec le bouton droit sur un texte sélectionné dans la visionneuse pour l'envoyer à un outil d'IA. Gérez les fournisseurs et les prompts enregistrés ci-dessous.",
     "language": "Langue",
-    "languageHint": "Langue d'affichage de l'interface."
+    "languageHint": "Langue d'affichage de l'interface.",
+    "templates": "Modèles de document",
+    "defaultTemplate": "Modèle par défaut",
+    "defaultTemplateHint": "Utilisé lorsqu'un document n'en choisit pas avec {code} dans son frontmatter.",
+    "pageSize": "Format de page",
+    "pageSizeHint": "Format du papier pour les modèles et l'export PDF, sauf si le document définit {code}.",
+    "pageSizeLetter": "Lettre US",
+    "pageSizeA4": "A4",
+    "templatesHint": "Vos modèles se trouvent dans le dossier des modèles, un dossier par modèle avec template.css et template.json. Dupliquez un modèle pour partir de celui-ci ; les modifications s'affichent dès que vous enregistrez le fichier."
+  },
+  "templates": {
+    "none": "Aucun (vue lecture)",
+    "report": "Rapport",
+    "letter": "Lettre",
+    "memo": "Note de service"
+  },
+  "templateSettings": {
+    "builtin": "Intégré",
+    "yours": "Personnel",
+    "replacesBuiltin": "Personnel, remplace l'intégré",
+    "duplicate": "Dupliquer",
+    "delete": "Supprimer",
+    "deleteConfirm": "Supprimer le modèle « {name} » ?",
+    "copyName": "{name} (copie)",
+    "created": "Modèle « {id} » créé",
+    "failed": "Cela n'a pas fonctionné.",
+    "refused": "CSS non chargé : {reason}",
+    "openFolder": "Ouvrir le dossier des modèles",
+    "importCss": "Importer un CSS…"
   },
   "toc": {
     "onThisPage": "Sur cette page",

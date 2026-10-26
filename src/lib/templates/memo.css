@@ -1,0 +1,107 @@
+/* Memo: bold heading over a rule, a borderless To/From table right below it. */
+.doc-page {
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.45;
+}
+
+.doc-page h1 {
+  font-size: 24pt;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #111;
+  margin: 0 0 0.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 3px solid #111;
+}
+
+.doc-page h1 + table {
+  border: none;
+  margin: 0 0 1.5em;
+  padding-bottom: 1em;
+  border-bottom: 1px solid #111;
+  width: 100%;
+}
+
+.doc-page h1 + table thead {
+  display: none;
+}
+
+.doc-page h1 + table td {
+  border: none;
+  padding: 0.2em 1em 0.2em 0;
+  vertical-align: top;
+}
+
+.doc-page h1 + table td:first-child {
+  width: 1%;
+  white-space: nowrap;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 9.5pt;
+  letter-spacing: 0.04em;
+}
+
+.doc-page h2 {
+  font-size: 12pt;
+  font-weight: 700;
+  margin: 1.4em 0 0.4em;
+  color: #111;
+}
+
+.doc-page h3,
+.doc-page h4 {
+  font-size: 11pt;
+  font-weight: 700;
+  margin: 1.2em 0 0.3em;
+}
+
+.doc-page p {
+  margin: 0 0 0.8em;
+}
+
+.doc-page ul,
+.doc-page ol {
+  margin: 0 0 0.8em;
+  padding-left: 1.5em;
+}
+
+.doc-page a {
+  color: #1d4ed8;
+}
+
+.doc-page blockquote {
+  margin: 0 0 0.8em;
+  padding-left: 0.9em;
+  border-left: 3px solid #d1d5db;
+  color: #374151;
+}
+
+.doc-page table {
+  margin: 0 0 1em;
+  font-size: 10pt;
+}
+
+.doc-page th,
+.doc-page td {
+  border: 0.75px solid #d1d5db;
+  padding: 0.3em 0.6em;
+  text-align: left;
+}
+
+.doc-page th {
+  background: #f3f4f6;
+}
+
+.doc-page pre {
+  font-size: 9pt;
+  padding: 0.6em 0.8em;
+  background: #f5f5f5;
+}
+
+.doc-page hr {
+  border: none;
+  border-top: 1px solid #111;
+  margin: 1.5em 0;
+}

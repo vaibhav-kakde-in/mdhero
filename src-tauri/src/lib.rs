@@ -1,6 +1,7 @@
 mod commands;
 pub mod menu;
 mod single_window;
+mod templates;
 mod watcher;
 
 use std::sync::Mutex;
@@ -118,6 +119,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_cli::init())
         .manage(watcher::WatcherState::default())
+        .manage(templates::TemplatesWatch::default())
         .manage(OpenedFiles::default())
         .invoke_handler(tauri::generate_handler![
             commands::read_markdown_file,
@@ -132,6 +134,12 @@ pub fn run() {
             watcher::watch_file,
             watcher::unwatch_file,
             watcher::stop_watching,
+            templates::list_user_templates,
+            templates::create_user_template,
+            templates::import_template_css,
+            templates::delete_user_template,
+            templates::open_templates_folder,
+            templates::watch_templates,
             get_opened_files,
             single_window::get_open_in_existing_window,
             single_window::set_open_in_existing_window,

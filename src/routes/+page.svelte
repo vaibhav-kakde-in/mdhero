@@ -26,6 +26,9 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { invoke } from "@tauri-apps/api/core";
   import { tocVisible, tocEntries } from "$lib/stores/toc";
+  import { templateOverrides } from "$lib/stores/docTemplate";
+  import { allTemplates, initUserTemplates } from "$lib/stores/userTemplates";
+  import { resolveTemplate, resolvePageSize } from "$lib/templates";
   import Toolbar from "$lib/components/Toolbar.svelte";
   import MarkdownRenderer from "$lib/components/MarkdownRenderer.svelte";
   import DropZone from "$lib/components/DropZone.svelte";
@@ -77,6 +80,8 @@
   // preview pane, so save / dirty / editContent all keep working unchanged.
   let splitMode = $state(false);
   let splitPreviewHtml = $state("");
+  // From the editor text, so a `template:` typed in Split applies before saving.
+  let splitPreviewFrontmatter = $state<Record<string, unknown> | null | undefined>(undefined);
   let splitPreviewTimer: ReturnType<typeof setTimeout> | undefined;
   let contentMaxWidth = $derived(getContentMaxWidth($settings));
 
@@ -144,7 +149,7 @@
 
     tick().then(() => {
       requestAnimationFrame(() => {
-        const article = document.querySelector("article.prose");
+        const article = document.querySelector("article.md-content");
         if (!article) { isRestoring = false; return; }
 
         const elements = Array.from(article.querySelectorAll<HTMLElement>("[data-source-line]"));
@@ -216,7 +221,10 @@
   // fast typing stays smooth. ponytail: full re-render per debounce tick; fine
   // for typical docs — add incremental rendering only if a huge file lags.
   $effect(() => {
-    if (!splitMode || !activeTab?.isEditing) return;
+    if (!splitMode || !activeTab?.isEditing) {
+      splitPreviewFrontmatter = undefined;
+      return;
+    }
     const content = activeTab.editContent;
     const baseDir = getBaseDir(activeTab.filePath);
     clearTimeout(splitPreviewTimer);
@@ -224,6 +232,7 @@
       const result = renderFull(content, baseDir);
       allowAssets(result.assetPaths, activeTab.filePath);
       splitPreviewHtml = result.html;
+      splitPreviewFrontmatter = result.frontmatter;
       // The re-render replaced the preview's blocks; put it back where the
       // editor is so typing never leaves the two panes on different sections.
       tick().then(() => splitSync?.syncFromEditor());
@@ -263,6 +272,17 @@
   let activePaginate = $derived(
     $docStore.frontmatter?.paginate === true || $docStore.frontmatter?.paginate === "true"
   );
+
+  let activeTemplateOverride = $derived($docStore.filePath ? $templateOverrides[$docStore.filePath] : undefined);
+  let activeTemplate = $derived(
+    resolveTemplate(activeTemplateOverride, $docStore.frontmatter, $settings.defaultTemplate, $allTemplates)
+  );
+  let activePageSize = $derived(resolvePageSize($docStore.frontmatter, $settings.pageSize));
+  let splitFrontmatter = $derived(splitPreviewFrontmatter === undefined ? $docStore.frontmatter : splitPreviewFrontmatter);
+  let splitTemplate = $derived(
+    resolveTemplate(activeTemplateOverride, splitFrontmatter, $settings.defaultTemplate, $allTemplates)
+  );
+  let splitPageSize = $derived(resolvePageSize(splitFrontmatter, $settings.pageSize));
 
   function togglePresent() {
     presenting = !presenting;
@@ -720,6 +740,7 @@
     // One file-changed listener for the session (#97); which files are watched
     // follows the tabs (open / close / save-as), not the active document.
     void initFileWatcher();
+    void initUserTemplates();
 
     void (async () => {
       // Bring back last run's tabs first (#72), so a file opened via "Open
@@ -1272,6 +1293,8 @@
           html={splitPreviewHtml}
           onImageClick={(src, all, idx) => { lightboxImages = all; lightboxIndex = idx; lightboxVisible = true; }}
           onLocalLink={handleLocalLink}
+          template={splitTemplate}
+          pageSize={splitPageSize}
         />
       </main>
     {:else if activeTab?.isEditing}
@@ -1314,11 +1337,16 @@
       </main>
     {:else}
       <main class="content-main" class:toc-spaced={$tocVisible && $tocEntries.length > 0}>
-        <FrontmatterBar />
+        <!-- A templated page is what prints; the metadata strip stays on screen. -->
+        <div class={activeTemplate ? "print:hidden" : ""}>
+          <FrontmatterBar />
+        </div>
         <MarkdownRenderer
           html={$docStore.renderedHtml}
           onImageClick={(src, all, idx) => { lightboxImages = all; lightboxIndex = idx; lightboxVisible = true; }}
           onLocalLink={handleLocalLink}
+          template={activeTemplate}
+          pageSize={activePageSize}
         />
       </main>
     {/if}

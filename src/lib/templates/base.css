@@ -1,0 +1,130 @@
+/* The sheet every template is drawn on. The paper stays white in dark mode:
+   it previews what prints. */
+.doc-page {
+  --page-width: 8.5in;
+  --page-ratio: 1.2941;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: var(--page-width) !important;
+  min-height: calc(var(--page-width) * var(--page-ratio)) !important;
+  margin: 2rem auto !important;
+  padding: var(--page-margin, 1in) !important;
+  background: #fff;
+  color: #111;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 8px 24px rgba(0, 0, 0, 0.08);
+  overflow-wrap: break-word;
+}
+
+.doc-page[data-page-size="a4"] {
+  --page-width: 210mm;
+  --page-ratio: 1.4142;
+}
+
+@media (max-width: 720px) {
+  .doc-page {
+    padding: 1.5rem !important;
+  }
+}
+
+.doc-page img {
+  max-width: 100%;
+  height: auto;
+}
+
+.doc-page pre {
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.doc-page code {
+  font-family: "SF Mono", "JetBrains Mono", Consolas, Menlo, monospace;
+}
+
+.doc-page table {
+  border-collapse: collapse;
+}
+
+/* Tailwind's preflight strips the browser's default spacing, heading sizes and
+   list markers. Themes written for other apps (Typora, Marked) assume those
+   defaults, so they come back here; :where() keeps them at zero specificity, so
+   any rule a template writes still wins. */
+.doc-page :where(p, blockquote, figure, pre, table, dl, ul, ol) {
+  margin: 1em 0;
+}
+
+.doc-page :where(blockquote, figure) {
+  margin-inline: 2.5em;
+}
+
+.doc-page :where(ul, ol) {
+  padding-inline-start: 2em;
+}
+
+.doc-page :where(ul) {
+  list-style: disc;
+}
+
+.doc-page :where(ol) {
+  list-style: decimal;
+}
+
+.doc-page :where(ul ul) {
+  list-style: circle;
+}
+
+.doc-page :where(li > ul, li > ol) {
+  margin: 0;
+}
+
+.doc-page :where(h1, h2, h3, h4, h5, h6) {
+  font-weight: bold;
+}
+
+.doc-page :where(h1) { font-size: 2em; margin: 0.67em 0; }
+.doc-page :where(h2) { font-size: 1.5em; margin: 0.83em 0; }
+.doc-page :where(h3) { font-size: 1.17em; margin: 1em 0; }
+.doc-page :where(h4) { margin: 1.33em 0; }
+.doc-page :where(h5) { font-size: 0.83em; margin: 1.67em 0; }
+.doc-page :where(h6) { font-size: 0.67em; margin: 2.33em 0; }
+
+.doc-page :where(hr) {
+  margin: 0.5em 0;
+}
+
+.doc-page :where(th) {
+  font-weight: bold;
+}
+
+.doc-page .task-list-item {
+  list-style: none;
+}
+
+@media print {
+  /* @page owns the margins and size on paper; zoom is a screen convenience. */
+  .doc-page {
+    max-width: none !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none;
+    zoom: 1 !important;
+  }
+
+  .doc-page h1,
+  .doc-page h2,
+  .doc-page h3,
+  .doc-page h4 {
+    break-after: avoid;
+  }
+
+  .doc-page pre,
+  .doc-page table,
+  .doc-page img,
+  .doc-page .mermaid-diagram {
+    break-inside: avoid;
+  }
+
+  .doc-page .code-copy-btn {
+    display: none;
+  }
+}

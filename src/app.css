@@ -67,7 +67,8 @@ html.dark ::-webkit-scrollbar-thumb {
     display: none !important;
   }
 
-  article {
+  /* A document template brings its own print styles. */
+  article:not([data-template]) {
     max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -78,20 +79,23 @@ html.dark ::-webkit-scrollbar-thumb {
   pre {
     white-space: pre-wrap !important;
     word-break: break-word !important;
-    border: 1px solid #ddd !important;
     page-break-inside: avoid;
+  }
+
+  article:not([data-template]) pre {
+    border: 1px solid #ddd !important;
   }
 
   table { page-break-inside: avoid; }
   h1, h2, h3, h4, h5, h6 { page-break-after: avoid; }
   img { max-width: 100% !important; page-break-inside: avoid; }
 
-  blockquote {
+  article:not([data-template]) blockquote {
     border-left: 3px solid #999 !important;
     color: #333 !important;
   }
 
-  a {
+  article:not([data-template]) a {
     color: #333 !important;
     text-decoration: underline !important;
   }

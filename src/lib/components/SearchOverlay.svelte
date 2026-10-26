@@ -17,12 +17,12 @@
 
   /**
    * The DOM element to highlight in non-edit modes: the rendered Markdown
-   * (`article.prose`) or the raw-source `<pre>`. In edit mode neither exists —
+   * (`article.md-content`) or the raw-source `<pre>`. In edit mode neither exists —
    * the document is a `<textarea>` whose contents aren't markable DOM text, so
    * the Editor component renders its own highlight backdrop instead.
    */
   function getViewTarget(): HTMLElement | null {
-    return document.querySelector<HTMLElement>("article.prose, pre.raw-source");
+    return document.querySelector<HTMLElement>("article.md-content, pre.raw-source");
   }
 
   function clearMarks() {

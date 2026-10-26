@@ -57,6 +57,9 @@
     "pdfTitleNoFile": "导出 PDF（请先打开文件）",
     "pdfTitleEditing": "导出 PDF（退出编辑模式后可用）",
     "pdfTitle": "导出 PDF",
+    "templateTitle": "文档模板",
+    "templateTitleNoFile": "文档模板（请先打开文件）",
+    "templateFollowDocument": "跟随文档",
     "settings": "设置 ({mod}+,)",
     "settingsAria": "设置",
     "theme": "切换主题"
@@ -210,7 +213,35 @@
     "aiLookup": "AI 查询",
     "aiLookupHint": "在阅读器中右键选中文本，即可发送到 AI 工具。可在下方管理服务商和已保存的提示词。",
     "language": "语言",
-    "languageHint": "界面显示语言。"
+    "languageHint": "界面显示语言。",
+    "templates": "文档模板",
+    "defaultTemplate": "默认模板",
+    "defaultTemplateHint": "当文档未在 frontmatter 中用 {code} 指定模板时使用。",
+    "pageSize": "纸张大小",
+    "pageSizeHint": "模板和 PDF 导出使用的纸张大小，除非文档设置了 {code}。",
+    "pageSizeLetter": "美国信纸",
+    "pageSizeA4": "A4",
+    "templatesHint": "你的模板位于模板文件夹中，每个模板一个文件夹，包含 template.css 和 template.json。复制一个模板即可在其基础上修改；保存文件后更改会立即生效。"
+  },
+  "templates": {
+    "none": "无（阅读视图）",
+    "report": "报告",
+    "letter": "信函",
+    "memo": "备忘录"
+  },
+  "templateSettings": {
+    "builtin": "内置",
+    "yours": "自定义",
+    "replacesBuiltin": "自定义，替换内置模板",
+    "duplicate": "复制",
+    "delete": "删除",
+    "deleteConfirm": "删除模板“{name}”？",
+    "copyName": "{name}（副本）",
+    "created": "已创建模板“{id}”",
+    "failed": "操作未成功。",
+    "refused": "CSS 未加载：{reason}",
+    "openFolder": "打开模板文件夹",
+    "importCss": "导入 CSS…"
   },
   "toc": {
     "onThisPage": "本页目录",

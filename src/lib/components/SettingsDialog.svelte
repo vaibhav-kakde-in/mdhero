@@ -2,9 +2,12 @@
   import { X } from "@lucide/svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { settings } from "$lib/stores/settings";
+  import { NO_TEMPLATE, templateLabel, type PageSize } from "$lib/templates";
+  import { allTemplates } from "$lib/stores/userTemplates";
   import { isMac } from "$lib/utils/platform";
   import { t, locale, setLocale, SUPPORTED_LOCALES, type Locale } from "$lib/i18n";
   import AILookupSettings from "./AILookupSettings.svelte";
+  import TemplateSettings from "./TemplateSettings.svelte";
 
   let { visible = $bindable(false) }: { visible: boolean } = $props();
 
@@ -150,6 +153,45 @@
               class="setting-switch"
             />
           </label>
+        </section>
+
+        <section class="settings-section">
+          <h3 class="section-title">{$t('settings.templates')}</h3>
+
+          <label class="setting-row">
+            <div class="setting-text">
+              <span class="setting-label">{$t('settings.defaultTemplate')}</span>
+              <span class="setting-hint">{#each $t('settings.defaultTemplateHint').split('{code}') as part, i}{#if i > 0}<code>template:</code>{/if}{part}{/each}</span>
+            </div>
+            <select
+              class="setting-select"
+              value={$settings.defaultTemplate}
+              onchange={(e) => settings.update((s) => ({ ...s, defaultTemplate: e.currentTarget.value }))}
+            >
+              <option value={NO_TEMPLATE}>{$t('templates.none')}</option>
+              {#each $allTemplates as tpl (tpl.id)}
+                <option value={tpl.id}>{templateLabel(tpl, $t)}</option>
+              {/each}
+            </select>
+          </label>
+
+          <label class="setting-row">
+            <div class="setting-text">
+              <span class="setting-label">{$t('settings.pageSize')}</span>
+              <span class="setting-hint">{#each $t('settings.pageSizeHint').split('{code}') as part, i}{#if i > 0}<code>papersize:</code>{/if}{part}{/each}</span>
+            </div>
+            <select
+              class="setting-select"
+              value={$settings.pageSize}
+              onchange={(e) => settings.update((s) => ({ ...s, pageSize: e.currentTarget.value as PageSize }))}
+            >
+              <option value="letter">{$t('settings.pageSizeLetter')}</option>
+              <option value="a4">{$t('settings.pageSizeA4')}</option>
+            </select>
+          </label>
+
+          <p class="section-hint" style="margin-top: 12px;">{$t('settings.templatesHint')}</p>
+          <TemplateSettings />
         </section>
 
         <section class="settings-section">

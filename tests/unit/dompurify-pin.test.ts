@@ -40,8 +40,8 @@ const pkg = JSON.parse(
   readFileSync(resolve(process.cwd(), "package.json"), "utf8")
 ) as {
   dependencies: Record<string, string>;
-  pnpm?: { overrides?: Record<string, string> };
 };
+const workspace = readFileSync(resolve(process.cwd(), "pnpm-workspace.yaml"), "utf8");
 
 describe("the DOMPurify pin", () => {
   it("keeps the app's own range inside 3.3.x", () => {
@@ -51,7 +51,8 @@ describe("the DOMPurify pin", () => {
   it("holds Mermaid's transitive copy at the same version", () => {
     // Without the override, Mermaid resolves its own ^3.3.3 up to 3.4.x and the
     // app ends up sanitizing with one version while Mermaid uses another.
-    expect(pkg.pnpm?.overrides?.dompurify).toBe("~3.3.3");
+    // pnpm 11+ no longer reads the `pnpm` field in package.json.
+    expect(workspace).toMatch(/^overrides:\n(?:[ \t]+.*\n)*?[ \t]+dompurify: ['"]?~3\.3\.3['"]?$/m);
   });
 
   it("resolves to a 3.3.x install, not just a 3.3.x spec", () => {

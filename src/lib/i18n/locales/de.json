@@ -57,6 +57,9 @@
     "pdfTitleNoFile": "Als PDF exportieren (zuerst eine Datei öffnen)",
     "pdfTitleEditing": "Als PDF exportieren (Bearbeitungsmodus beenden, um es zu verwenden)",
     "pdfTitle": "Als PDF exportieren",
+    "templateTitle": "Dokumentvorlage",
+    "templateTitleNoFile": "Dokumentvorlage (zuerst eine Datei öffnen)",
+    "templateFollowDocument": "Wie im Dokument",
     "settings": "Einstellungen ({mod}+,)",
     "settingsAria": "Einstellungen",
     "theme": "Design umschalten"
@@ -211,7 +214,35 @@
     "aiLookup": "KI-Nachschlage",
     "aiLookupHint": "Klicken Sie im Viewer mit der rechten Maustaste auf markierten Text, um ihn an ein KI-Tool zu senden. Verwalten Sie Anbieter und gespeicherte Prompts unten.",
     "language": "Sprache",
-    "languageHint": "Anzeigesprache der Oberfläche."
+    "languageHint": "Anzeigesprache der Oberfläche.",
+    "templates": "Dokumentvorlagen",
+    "defaultTemplate": "Standardvorlage",
+    "defaultTemplateHint": "Gilt, wenn ein Dokument keine Vorlage mit {code} im Frontmatter wählt.",
+    "pageSize": "Papierformat",
+    "pageSizeHint": "Papierformat für Vorlagen und PDF-Export, sofern ein Dokument nicht {code} festlegt.",
+    "pageSizeLetter": "US Letter",
+    "pageSizeA4": "A4",
+    "templatesHint": "Eigene Vorlagen liegen im Vorlagenordner, je ein Ordner mit template.css und template.json. Duplizieren Sie eine Vorlage, um darauf aufzubauen; Änderungen erscheinen, sobald Sie die Datei speichern."
+  },
+  "templates": {
+    "none": "Keine (Leseansicht)",
+    "report": "Bericht",
+    "letter": "Brief",
+    "memo": "Memo"
+  },
+  "templateSettings": {
+    "builtin": "Integriert",
+    "yours": "Eigene",
+    "replacesBuiltin": "Eigene, ersetzt die integrierte",
+    "duplicate": "Duplizieren",
+    "delete": "Löschen",
+    "deleteConfirm": "Die Vorlage „{name}“ löschen?",
+    "copyName": "{name} (Kopie)",
+    "created": "Vorlage „{id}“ erstellt",
+    "failed": "Das hat nicht funktioniert.",
+    "refused": "CSS nicht geladen: {reason}",
+    "openFolder": "Vorlagenordner öffnen",
+    "importCss": "CSS importieren…"
   },
   "toc": {
     "onThisPage": "Auf dieser Seite",

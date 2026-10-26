@@ -1,0 +1,123 @@
+/* Academic report: serif body, numbered sections, booktabs-style tables. */
+.doc-page {
+  font-family: "Charter", "Bitstream Charter", "Cambria", "Georgia", "Times New Roman", serif;
+  font-size: 11.5pt;
+  line-height: 1.55;
+  text-align: justify;
+  hyphens: auto;
+  counter-reset: section;
+}
+
+.doc-page h1,
+.doc-page h2,
+.doc-page h3,
+.doc-page h4 {
+  text-align: left;
+  hyphens: manual;
+  line-height: 1.25;
+  color: #000;
+}
+
+.doc-page h1 {
+  font-size: 20pt;
+  font-weight: 700;
+  text-align: center;
+  margin: 0 0 1.5em;
+}
+
+.doc-page h2 {
+  font-size: 14pt;
+  font-weight: 700;
+  margin: 1.6em 0 0.6em;
+  counter-increment: section;
+  counter-reset: subsection;
+}
+
+.doc-page h2::before {
+  content: counter(section) "\2002";
+}
+
+.doc-page h3 {
+  font-size: 12pt;
+  font-weight: 700;
+  margin: 1.3em 0 0.5em;
+  counter-increment: subsection;
+}
+
+.doc-page h3::before {
+  content: counter(section) "." counter(subsection) "\2002";
+}
+
+.doc-page h4 {
+  font-size: 11.5pt;
+  font-weight: 700;
+  font-style: italic;
+  margin: 1.1em 0 0.4em;
+}
+
+.doc-page p {
+  margin: 0 0 0.8em;
+}
+
+.doc-page ul,
+.doc-page ol {
+  margin: 0 0 0.8em;
+  padding-left: 1.6em;
+}
+
+.doc-page li {
+  margin: 0.2em 0;
+}
+
+.doc-page a {
+  color: #1a3d7c;
+  text-decoration: none;
+}
+
+.doc-page blockquote {
+  margin: 1em 2em;
+  font-style: italic;
+  color: #333;
+}
+
+.doc-page table {
+  margin: 1.2em auto;
+  border-top: 1.5px solid #000;
+  border-bottom: 1.5px solid #000;
+  font-size: 10pt;
+  text-align: left;
+}
+
+.doc-page thead th {
+  border-bottom: 0.75px solid #000;
+  font-weight: 700;
+}
+
+.doc-page th,
+.doc-page td {
+  padding: 0.35em 0.8em;
+}
+
+.doc-page img {
+  display: block;
+  margin: 1.2em auto;
+}
+
+.doc-page pre {
+  font-size: 9pt;
+  line-height: 1.4;
+  padding: 0.8em 1em;
+  background: #f6f6f6;
+  border-left: 2px solid #999;
+  text-align: left;
+}
+
+.doc-page :not(pre) > code {
+  font-size: 0.88em;
+}
+
+.doc-page hr {
+  border: none;
+  border-top: 0.75px solid #666;
+  margin: 2em 25%;
+}

@@ -2,7 +2,8 @@
   import { onMount, tick } from "svelte";
   import { get } from "svelte/store";
   import { invoke } from "@tauri-apps/api/core";
-  import { settings, fontFamilyMap, getContentMaxWidth } from "$lib/stores/settings";
+  import { settings, fontFamilyMap, getContentMaxWidth, DEFAULT_FONT_SIZE } from "$lib/stores/settings";
+  import { templateStylesheet, type DocTemplate, type PageSize } from "$lib/templates";
   import { tocEntries, activeHeadingId, extractToc, isObserverPaused } from "$lib/stores/toc";
   import { aiLookup, setPendingSelection } from "$lib/stores/aiLookup";
   import { t, translate } from "$lib/i18n";
@@ -14,8 +15,13 @@
     html = "",
     onImageClick = (_src: string, _all: string[], _idx: number) => {},
     onLocalLink,
+    template = null,
+    pageSize = "letter",
   }: {
     html: string;
+    /** Lay the document out as a page in this template instead of the reader view. */
+    template?: DocTemplate | null;
+    pageSize?: PageSize;
     onImageClick?: (src: string, allImages: string[], index: number) => void;
     /**
      * Called when a link to a local file (relative or absolute path, no URL
@@ -43,7 +49,8 @@
   }
 
   function initMermaid() {
-    const isDark = document.documentElement.classList.contains("dark");
+    // A template page stays white in dark mode, so its diagrams must too.
+    const isDark = document.documentElement.classList.contains("dark") && !template;
     const theme = isDark ? "dark" : "default";
     if (theme === lastMermaidTheme) return;
     lastMermaidTheme = theme;
@@ -172,9 +179,7 @@
   }
 
   onMount(() => {
-    articleEl?.addEventListener("contextmenu", handleContextMenu);
     return () => {
-      articleEl?.removeEventListener("contextmenu", handleContextMenu);
       observer?.disconnect();
       // Remove the body-level tooltip so it can't outlive the component.
       tooltipEl?.remove();
@@ -182,9 +187,21 @@
     };
   });
 
+  // A single style element in the head, not a stylesheet per template, so a
+  // template added later at runtime goes in the same way as the built-in ones.
   $effect(() => {
-    // Re-run when html changes
+    if (!template) return;
+    const style = document.createElement("style");
+    style.dataset.mdheroTemplate = template.id;
+    style.textContent = templateStylesheet(template, pageSize);
+    document.head.appendChild(style);
+    return () => style.remove();
+  });
+
+  $effect(() => {
+    // Re-run when html changes, or when a template change re-inserts it
     html;
+    template?.id;
 
     // A re-render (e.g. opening a linked file in a new tab) replaces the
     // article, so a hover's mouseleave may never fire — clear any stuck tooltip.
@@ -328,26 +345,45 @@
   }
 </script>
 
-<article
-  bind:this={articleEl}
-  class="md-content prose prose-slate dark:prose-invert max-w-none mx-auto px-8 py-8 transition-all"
-  class:wrap-code={$settings.wrapCodeBlocks}
-  style="
-    max-width: {getContentMaxWidth($settings)};
-    font-size: {$settings.fontSize}px;
-    line-height: {$settings.lineHeight};
-    font-family: {fontFamilyMap[$settings.fontFamily]};
-  "
->
-  {@html html}
-</article>
+{#if template}
+  <!-- The template owns type and width; the reader's text size still applies,
+       as a zoom of the whole page, so Cmd/Ctrl +/- keep working. -->
+  <article
+    bind:this={articleEl}
+    oncontextmenu={handleContextMenu}
+    class="md-content doc-page"
+    class:wrap-code={$settings.wrapCodeBlocks}
+    data-template={template.id}
+    data-page-size={pageSize}
+    style="zoom: {$settings.fontSize / DEFAULT_FONT_SIZE};"
+  >
+    {#key template.id}
+      {@html html}
+    {/key}
+  </article>
+{:else}
+  <article
+    bind:this={articleEl}
+    oncontextmenu={handleContextMenu}
+    class="md-content prose prose-slate dark:prose-invert max-w-none mx-auto px-8 py-8 transition-all"
+    class:wrap-code={$settings.wrapCodeBlocks}
+    style="
+      max-width: {getContentMaxWidth($settings)};
+      font-size: {$settings.fontSize}px;
+      line-height: {$settings.lineHeight};
+      font-family: {fontFamilyMap[$settings.fontFamily]};
+    "
+  >
+    {@html html}
+  </article>
+{/if}
 
 <style>
-  .md-content {
+  .md-content:not([data-template]) {
     color: #1c1c1e;
   }
 
-  :global(html.dark) .md-content {
+  :global(html.dark) .md-content:not([data-template]) {
     color: #d1d1d6;
     background: transparent;
   }
@@ -367,7 +403,7 @@
   }
 
   /* Typography refinement */
-  article :global(h1) {
+  article:not([data-template]) :global(h1) {
     font-size: 1.75em;
     font-weight: 700;
     letter-spacing: -0.02em;
@@ -375,33 +411,33 @@
     color: #1c1c1e;
   }
 
-  :global(html.dark) article :global(h1) {
+  :global(html.dark) article:not([data-template]) :global(h1) {
     color: #f2f2f7;
   }
 
-  article :global(h2) {
+  article:not([data-template]) :global(h2) {
     font-size: 1.4em;
     font-weight: 600;
     letter-spacing: -0.01em;
     color: #1c1c1e;
   }
 
-  :global(html.dark) article :global(h2) {
+  :global(html.dark) article:not([data-template]) :global(h2) {
     color: #e5e5e7;
   }
 
-  article :global(h3) {
+  article:not([data-template]) :global(h3) {
     font-size: 1.15em;
     font-weight: 600;
     color: #1c1c1e;
   }
 
-  :global(html.dark) article :global(h3) {
+  :global(html.dark) article:not([data-template]) :global(h3) {
     color: #e5e5e7;
   }
 
   /* Code */
-  article :global(pre) {
+  article:not([data-template]) :global(pre) {
     border-radius: 10px;
     padding: 1em 1.2em;
     overflow-x: auto;
@@ -411,7 +447,7 @@
     color: #24292f !important;
   }
 
-  :global(html.dark) article :global(pre) {
+  :global(html.dark) article:not([data-template]) :global(pre) {
     border-color: #2c2c2e;
   }
 
@@ -422,11 +458,11 @@
     overflow-wrap: anywhere;
   }
 
-  article :global(code) {
+  article:not([data-template]) :global(code) {
     font-family: "SF Mono", "JetBrains Mono", "Fira Code", Menlo, monospace;
   }
 
-  article :global(:not(pre) > code) {
+  article:not([data-template]) :global(:not(pre) > code) {
     background: #f2f2f7;
     padding: 0.15em 0.4em;
     border-radius: 5px;
@@ -434,7 +470,7 @@
     color: #0E7490;
   }
 
-  :global(html.dark) article :global(:not(pre) > code) {
+  :global(html.dark) article:not([data-template]) :global(:not(pre) > code) {
     background: #2c2c2e;
     color: #67E8F9;
   }
@@ -447,7 +483,7 @@
   }
 
   /* Tables */
-  article :global(table) {
+  article:not([data-template]) :global(table) {
     border-collapse: collapse;
     width: 100%;
     overflow-x: auto;
@@ -455,83 +491,83 @@
     font-size: 0.9em;
   }
 
-  article :global(th),
-  article :global(td) {
+  article:not([data-template]) :global(th),
+  article:not([data-template]) :global(td) {
     border: 1px solid #e5e5ea;
     padding: 0.5em 0.75em;
     text-align: start;
   }
 
-  :global(html.dark) article :global(th),
-  :global(html.dark) article :global(td) {
+  :global(html.dark) article:not([data-template]) :global(th),
+  :global(html.dark) article:not([data-template]) :global(td) {
     border-color: #3a3a3c;
   }
 
-  article :global(th) {
+  article:not([data-template]) :global(th) {
     background: #f2f2f7;
     font-weight: 600;
     font-size: 0.9em;
     color: #636366;
   }
 
-  :global(html.dark) article :global(th) {
+  :global(html.dark) article:not([data-template]) :global(th) {
     background: #1c1c1e;
     color: #aeaeb2;
   }
 
   /* Blockquotes */
-  article :global(blockquote) {
+  article:not([data-template]) :global(blockquote) {
     border-left: 3px solid #0891B2;
     padding-left: 1em;
     margin-left: 0;
     color: #636366;
   }
 
-  :global(html.dark) article :global(blockquote) {
+  :global(html.dark) article:not([data-template]) :global(blockquote) {
     border-left-color: rgba(8, 145, 178, 0.6);
     color: #8e8e93;
   }
 
   /* Images */
-  article :global(img) {
+  article:not([data-template]) :global(img) {
     max-width: 100%;
     height: auto;
     border-radius: 8px;
   }
 
   /* Horizontal rules — subtle divider, not a slab */
-  article :global(hr) {
+  article:not([data-template]) :global(hr) {
     border: none;
     border-top: 1px solid #ededf0;
     margin: 2.5em 0;
   }
 
-  :global(html.dark) article :global(hr) {
+  :global(html.dark) article:not([data-template]) :global(hr) {
     border-top-color: #242426;
   }
 
   /* Task lists */
-  article :global(.task-list-item) {
+  article:not([data-template]) :global(.task-list-item) {
     list-style: none;
     margin-left: -1.5em;
   }
 
-  article :global(.task-list-item input[type="checkbox"]) {
+  article:not([data-template]) :global(.task-list-item input[type="checkbox"]) {
     margin-right: 0.5em;
     accent-color: #0891B2;
   }
 
   /* Links */
-  article :global(a) {
+  article:not([data-template]) :global(a) {
     color: #0891B2;
     text-decoration: none;
   }
 
-  article :global(a:hover) {
+  article:not([data-template]) :global(a:hover) {
     text-decoration: underline;
   }
 
-  :global(html.dark) article :global(a) {
+  :global(html.dark) article:not([data-template]) :global(a) {
     color: #22D3EE;
   }
 
@@ -555,7 +591,7 @@
     backdrop-filter: blur(4px);
   }
 
-  :global(html.dark) article :global(.code-copy-btn) {
+  :global(html.dark) article:not([data-template]) :global(.code-copy-btn) {
     background: rgba(44,44,46,0.8);
     border-color: #3a3a3c;
     color: #aeaeb2;
@@ -570,7 +606,7 @@
     color: #1c1c1e;
   }
 
-  :global(html.dark) article :global(.code-copy-btn:hover) {
+  :global(html.dark) article:not([data-template]) :global(.code-copy-btn:hover) {
     background: rgba(58,58,60,0.95);
     color: #e5e5e7;
   }
@@ -620,62 +656,62 @@
    * `tests/unit/hljs-dark-coverage.test.ts` fails if the two ever drift apart,
    * so a highlight.js upgrade that adds a class can't silently reintroduce this.
    */
-  :global(html.dark) article :global(pre) {
+  :global(html.dark) article:not([data-template]) :global(pre) {
     background: #0d1117 !important;
     color: #c9d1d9 !important;
   }
-  :global(html.dark) article :global(.hljs) { color: #c9d1d9 !important; background: #0d1117 !important; }
+  :global(html.dark) article:not([data-template]) :global(.hljs) { color: #c9d1d9 !important; background: #0d1117 !important; }
 
-  :global(html.dark) article :global(.hljs-doctag),
-  :global(html.dark) article :global(.hljs-keyword),
-  :global(html.dark) article :global(.hljs-meta .hljs-keyword),
-  :global(html.dark) article :global(.hljs-template-tag),
-  :global(html.dark) article :global(.hljs-template-variable),
-  :global(html.dark) article :global(.hljs-type),
-  :global(html.dark) article :global(.hljs-variable.language_) { color: #ff7b72 !important; }
+  :global(html.dark) article:not([data-template]) :global(.hljs-doctag),
+  :global(html.dark) article:not([data-template]) :global(.hljs-keyword),
+  :global(html.dark) article:not([data-template]) :global(.hljs-meta .hljs-keyword),
+  :global(html.dark) article:not([data-template]) :global(.hljs-template-tag),
+  :global(html.dark) article:not([data-template]) :global(.hljs-template-variable),
+  :global(html.dark) article:not([data-template]) :global(.hljs-type),
+  :global(html.dark) article:not([data-template]) :global(.hljs-variable.language_) { color: #ff7b72 !important; }
 
-  :global(html.dark) article :global(.hljs-title),
-  :global(html.dark) article :global(.hljs-title.class_),
-  :global(html.dark) article :global(.hljs-title.class_.inherited__),
-  :global(html.dark) article :global(.hljs-title.function_) { color: #d2a8ff !important; }
+  :global(html.dark) article:not([data-template]) :global(.hljs-title),
+  :global(html.dark) article:not([data-template]) :global(.hljs-title.class_),
+  :global(html.dark) article:not([data-template]) :global(.hljs-title.class_.inherited__),
+  :global(html.dark) article:not([data-template]) :global(.hljs-title.function_) { color: #d2a8ff !important; }
 
-  :global(html.dark) article :global(.hljs-attr),
-  :global(html.dark) article :global(.hljs-attribute),
-  :global(html.dark) article :global(.hljs-literal),
-  :global(html.dark) article :global(.hljs-meta),
-  :global(html.dark) article :global(.hljs-number),
-  :global(html.dark) article :global(.hljs-operator),
-  :global(html.dark) article :global(.hljs-selector-attr),
-  :global(html.dark) article :global(.hljs-selector-class),
-  :global(html.dark) article :global(.hljs-selector-id),
-  :global(html.dark) article :global(.hljs-variable) { color: #79c0ff !important; }
+  :global(html.dark) article:not([data-template]) :global(.hljs-attr),
+  :global(html.dark) article:not([data-template]) :global(.hljs-attribute),
+  :global(html.dark) article:not([data-template]) :global(.hljs-literal),
+  :global(html.dark) article:not([data-template]) :global(.hljs-meta),
+  :global(html.dark) article:not([data-template]) :global(.hljs-number),
+  :global(html.dark) article:not([data-template]) :global(.hljs-operator),
+  :global(html.dark) article:not([data-template]) :global(.hljs-selector-attr),
+  :global(html.dark) article:not([data-template]) :global(.hljs-selector-class),
+  :global(html.dark) article:not([data-template]) :global(.hljs-selector-id),
+  :global(html.dark) article:not([data-template]) :global(.hljs-variable) { color: #79c0ff !important; }
 
-  :global(html.dark) article :global(.hljs-meta .hljs-string),
-  :global(html.dark) article :global(.hljs-regexp),
-  :global(html.dark) article :global(.hljs-string) { color: #a5d6ff !important; }
+  :global(html.dark) article:not([data-template]) :global(.hljs-meta .hljs-string),
+  :global(html.dark) article:not([data-template]) :global(.hljs-regexp),
+  :global(html.dark) article:not([data-template]) :global(.hljs-string) { color: #a5d6ff !important; }
 
-  :global(html.dark) article :global(.hljs-built_in),
-  :global(html.dark) article :global(.hljs-symbol) { color: #ffa657 !important; }
+  :global(html.dark) article:not([data-template]) :global(.hljs-built_in),
+  :global(html.dark) article:not([data-template]) :global(.hljs-symbol) { color: #ffa657 !important; }
 
-  :global(html.dark) article :global(.hljs-code),
-  :global(html.dark) article :global(.hljs-comment),
-  :global(html.dark) article :global(.hljs-formula) { color: #8b949e !important; }
+  :global(html.dark) article:not([data-template]) :global(.hljs-code),
+  :global(html.dark) article:not([data-template]) :global(.hljs-comment),
+  :global(html.dark) article:not([data-template]) :global(.hljs-formula) { color: #8b949e !important; }
 
-  :global(html.dark) article :global(.hljs-name),
-  :global(html.dark) article :global(.hljs-quote),
-  :global(html.dark) article :global(.hljs-selector-pseudo),
-  :global(html.dark) article :global(.hljs-selector-tag) { color: #7ee787 !important; }
+  :global(html.dark) article:not([data-template]) :global(.hljs-name),
+  :global(html.dark) article:not([data-template]) :global(.hljs-quote),
+  :global(html.dark) article:not([data-template]) :global(.hljs-selector-pseudo),
+  :global(html.dark) article:not([data-template]) :global(.hljs-selector-tag) { color: #7ee787 !important; }
 
-  :global(html.dark) article :global(.hljs-subst) { color: #c9d1d9 !important; }
+  :global(html.dark) article:not([data-template]) :global(.hljs-subst) { color: #c9d1d9 !important; }
   /* The one deliberate deviation from upstream github-dark: its #1f6feb scores
    * 4.08:1 against #0d1117, under the 4.5:1 WCAG AA floor the test enforces.
    * #58a6ff is GitHub's own dark-mode blue and scores 7.49:1. */
-  :global(html.dark) article :global(.hljs-section) { color: #58a6ff !important; font-weight: 700; }
-  :global(html.dark) article :global(.hljs-bullet) { color: #f2cc60 !important; }
-  :global(html.dark) article :global(.hljs-emphasis) { color: #c9d1d9 !important; font-style: italic; }
-  :global(html.dark) article :global(.hljs-strong) { color: #c9d1d9 !important; font-weight: 700; }
-  :global(html.dark) article :global(.hljs-addition) { color: #aff5b4 !important; background-color: #033a16 !important; }
-  :global(html.dark) article :global(.hljs-deletion) { color: #ffdcd7 !important; background-color: #67060c !important; }
+  :global(html.dark) article:not([data-template]) :global(.hljs-section) { color: #58a6ff !important; font-weight: 700; }
+  :global(html.dark) article:not([data-template]) :global(.hljs-bullet) { color: #f2cc60 !important; }
+  :global(html.dark) article:not([data-template]) :global(.hljs-emphasis) { color: #c9d1d9 !important; font-style: italic; }
+  :global(html.dark) article:not([data-template]) :global(.hljs-strong) { color: #c9d1d9 !important; font-weight: 700; }
+  :global(html.dark) article:not([data-template]) :global(.hljs-addition) { color: #aff5b4 !important; background-color: #033a16 !important; }
+  :global(html.dark) article:not([data-template]) :global(.hljs-deletion) { color: #ffdcd7 !important; background-color: #67060c !important; }
 
   /* Mermaid */
   article :global(.mermaid-diagram) {

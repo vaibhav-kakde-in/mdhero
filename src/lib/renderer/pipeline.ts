@@ -236,10 +236,13 @@ function addDirPlugin(mdInstance: MarkdownIt) {
   });
 }
 
-export async function initRenderer(): Promise<void> {
-  if (initialized) return;
-
-  md = new MarkdownIt({
+/**
+ * The one markdown-it configuration. `html: false` is a security invariant: a
+ * document is untrusted input, and raw HTML must never reach the sanitizer as
+ * markup. Kept in a single place so the async and lazy init paths cannot drift.
+ */
+function createMarkdownIt(): MarkdownIt {
+  const instance = new MarkdownIt({
     html: false,
     linkify: true,
     typographer: true,
@@ -256,13 +259,13 @@ export async function initRenderer(): Promise<void> {
     },
   });
 
-  md.use(texmath, {
+  instance.use(texmath, {
     engine: katex,
     delimiters: "dollars",
   });
 
-  md.use(taskLists, { enabled: false, label: true });
-  md.use(anchor, {
+  instance.use(taskLists, { enabled: false, label: true });
+  instance.use(anchor, {
     permalink: false,
     slugify: (s: string) =>
       s
@@ -271,10 +274,22 @@ export async function initRenderer(): Promise<void> {
         .replace(/[^\w\s-]/g, "")
         .replace(/\s+/g, "-"),
   });
-  addSourceLinePlugin(md);
-  addDirPlugin(md);
+  addSourceLinePlugin(instance);
+  addDirPlugin(instance);
 
-  initialized = true;
+  return instance;
+}
+
+function getMarkdownIt(): MarkdownIt {
+  if (!md) {
+    md = createMarkdownIt();
+    initialized = true;
+  }
+  return md;
+}
+
+export async function initRenderer(): Promise<void> {
+  getMarkdownIt();
 }
 
 export function render(markdown: string, baseDir?: string): string {
@@ -282,34 +297,7 @@ export function render(markdown: string, baseDir?: string): string {
 }
 
 export function renderFull(markdown: string, baseDir?: string): RenderResult {
-  if (!md) {
-    // Auto-init synchronously if not yet initialized
-    md = new MarkdownIt({
-    html: false,
-    linkify: true,
-    typographer: true,
-    highlight: (str, lang) => {
-      if (lang && lang !== "mermaid" && hljs.getLanguage(lang)) {
-        try {
-          return hljs.highlight(str, { language: lang }).value;
-        } catch {}
-      }
-      try {
-        return hljs.highlightAuto(str).value;
-      } catch {}
-      return "";
-    },
-  });
-    md.use(texmath, { engine: katex, delimiters: "dollars" });
-    md.use(taskLists, { enabled: false, label: true });
-    md.use(anchor, {
-      permalink: false,
-      slugify: (s: string) => s.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-"),
-    });
-    addSourceLinePlugin(md);
-    addDirPlugin(md);
-    initialized = true;
-  }
+  const md = getMarkdownIt();
 
   // A leading BOM would make the first block unparseable; see stripBom (#122).
   // Dropping it cannot shift `data-source-line`, since it removes no newline.

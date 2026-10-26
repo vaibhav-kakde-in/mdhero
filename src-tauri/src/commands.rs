@@ -174,11 +174,12 @@ pub fn path_exists(path: String) -> bool {
 /// `tauri.conf.json` any more: the only files the webview can ever fetch are
 /// the ones a document legitimately referenced from its own tree.
 ///
-/// Why the bound matters: DOMPurify is the only thing between a markdown file
-/// and script execution in the webview, and `csp` is null. Before this check a
-/// document could write `![x](../../../.ssh/id_rsa)` and make that file
-/// fetchable, so a single sanitizer bypass would have been a file-exfiltration
-/// primitive across the whole disk. Now it is bounded to what the user opened.
+/// Why the bound matters: a markdown file is untrusted, and the sanitizer and
+/// CSP are what stand between it and script execution in the webview. Before
+/// this check a document could write `![x](../../../.ssh/id_rsa)` and make that
+/// file fetchable, so a single sanitizer bypass would have been a
+/// file-exfiltration primitive across the whole disk. Now it is bounded to what
+/// the user opened.
 #[tauri::command]
 pub fn allow_assets(
     app: AppHandle,

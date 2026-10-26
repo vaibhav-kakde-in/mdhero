@@ -1,4 +1,5 @@
 import { writable } from "svelte/store";
+import type { PageSize } from "$lib/templates";
 
 export interface ReaderSettings {
   fontSize: number;
@@ -25,6 +26,10 @@ export interface ReaderSettings {
   tabsPosition: "top" | "side";
   /** Width of the side tabs panel in px. */
   tabsWidth: number;
+  /** Template id for documents that don't name one, or "none" for the reader view. */
+  defaultTemplate: string;
+  /** Paper size for templates and print, unless a document sets `papersize`. */
+  pageSize: PageSize;
 }
 
 const STORAGE_KEY = "mdhero-settings";
@@ -96,6 +101,8 @@ function loadSettings(): ReaderSettings {
     autoCheckUpdates: true,
     tabsPosition: "top",
     tabsWidth: DEFAULT_TABS_WIDTH,
+    defaultTemplate: "none",
+    pageSize: "letter",
   };
 
   if (typeof localStorage === "undefined") return defaults;
@@ -119,6 +126,8 @@ function loadSettings(): ReaderSettings {
         autoCheckUpdates: storedBoolean(parsed.autoCheckUpdates, defaults.autoCheckUpdates),
         tabsPosition: parsed.tabsPosition === "side" ? "side" : "top",
         tabsWidth: clampTabsWidth(parsed.tabsWidth),
+        defaultTemplate: typeof parsed.defaultTemplate === "string" ? parsed.defaultTemplate : defaults.defaultTemplate,
+        pageSize: parsed.pageSize === "a4" ? "a4" : "letter",
       };
     }
   } catch {}

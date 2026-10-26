@@ -1,0 +1,11 @@
+# Check out text with LF on every platform. Several tests parse repo files with
+# `\n`-only patterns (Cargo.lock in version-sync, the shebang of
+# scripts/build-quicklook.mjs), and shell/Swift sources must stay LF to run.
+* text=auto eol=lf
+
+*.png binary
+*.icns binary
+*.ico binary
+
+# Committed with CRLF; left byte-for-byte as it is.
+tests/fixtures/rtl-test/multi-lang.md -text

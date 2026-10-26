@@ -7,6 +7,9 @@
   import { openFileDialog } from "../tauri/files";
   import { copyAsRichText, copyAsMarkdown } from "../utils/clipboard";
   import { t, translate } from "$lib/i18n";
+  import { templateOverrides, setTemplateOverride } from "../stores/docTemplate";
+  import { NO_TEMPLATE, resolveTemplate, templateLabel } from "$lib/templates";
+  import { allTemplates } from "../stores/userTemplates";
   import ReaderControls from "./ReaderControls.svelte";
   import brandLogo from "$lib/assets/mdhero-icon.png";
 
@@ -52,11 +55,29 @@
 
   let showReaderControls = $state(false);
   let showCopyMenu = $state(false);
+  let showTemplateMenu = $state(false);
   let copyFeedback = $state("");
+
+  let templateOverride = $derived($document.filePath ? $templateOverrides[$document.filePath] : undefined);
+  /** What "Follow document" lands on, shown next to it so the choice isn't blind. */
+  let documentTemplate = $derived(resolveTemplate(undefined, $document.frontmatter, $settings.defaultTemplate, $allTemplates));
+  let activeTemplate = $derived(resolveTemplate(templateOverride, $document.frontmatter, $settings.defaultTemplate, $allTemplates));
 
   function closeAll() {
     showReaderControls = false;
     showCopyMenu = false;
+    showTemplateMenu = false;
+  }
+
+  function toggleTemplateMenu() {
+    const next = !showTemplateMenu;
+    closeAll();
+    showTemplateMenu = next;
+  }
+
+  function chooseTemplate(id: string | null) {
+    if ($document.filePath) setTemplateOverride($document.filePath, id);
+    showTemplateMenu = false;
   }
 
   function toggleReaderControls() {
@@ -93,7 +114,7 @@
   }
 
   async function handleCopyRichText() {
-    const article = globalThis.document?.querySelector("article.prose");
+    const article = globalThis.document?.querySelector("article.md-content");
     if (!article || !$document.content) return;
     const success = await copyAsRichText(article.innerHTML, $document.content);
     copyFeedback = success ? translate("common.copied") : translate("common.copyFailed");
@@ -309,6 +330,57 @@
       {/if}
     </div>
 
+    <div class="relative">
+      <button
+        onclick={toggleTemplateMenu}
+        class="btn btn-icon"
+        class:active={!!activeTemplate}
+        disabled={!$document.filePath}
+        title={!$document.filePath ? $t('toolbar.templateTitleNoFile') : $t('toolbar.templateTitle')}
+        aria-haspopup="menu"
+        aria-expanded={showTemplateMenu}
+      >
+        <svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="2" width="10" height="12" rx="1"/>
+          <line x1="5.5" y1="5" x2="10.5" y2="5"/>
+          <line x1="5.5" y1="8" x2="10.5" y2="8"/>
+          <line x1="5.5" y1="10.5" x2="8.5" y2="10.5"/>
+        </svg>
+      </button>
+
+      {#if showTemplateMenu}
+        <div class="dropdown" role="menu">
+          <button
+            onclick={() => chooseTemplate(null)}
+            class="dropdown-item"
+            role="menuitemradio"
+            aria-checked={templateOverride === undefined}
+          >
+            <span><span class="dropdown-check">{templateOverride === undefined ? "✓" : ""}</span>{$t('toolbar.templateFollowDocument')}</span>
+            <span class="dropdown-hint">{documentTemplate ? templateLabel(documentTemplate, $t) : $t("templates.none")}</span>
+          </button>
+          <button
+            onclick={() => chooseTemplate(NO_TEMPLATE)}
+            class="dropdown-item"
+            role="menuitemradio"
+            aria-checked={templateOverride === NO_TEMPLATE}
+          >
+            <span><span class="dropdown-check">{templateOverride === NO_TEMPLATE ? "✓" : ""}</span>{$t('templates.none')}</span>
+          </button>
+          {#each $allTemplates as tpl (tpl.id)}
+            <button
+              onclick={() => chooseTemplate(tpl.id)}
+              class="dropdown-item"
+              role="menuitemradio"
+              aria-checked={templateOverride === tpl.id}
+            >
+              <span><span class="dropdown-check">{templateOverride === tpl.id ? "✓" : ""}</span>{templateLabel(tpl, $t)}</span>
+            </button>
+          {/each}
+        </div>
+      {/if}
+    </div>
+
     <button
       onclick={handleExportPdf}
       class="btn btn-icon"
@@ -347,7 +419,7 @@
   </div>
 </header>
 
-{#if showCopyMenu || showReaderControls}
+{#if showCopyMenu || showReaderControls || showTemplateMenu}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="fixed inset-0 z-[9]" onclick={closeAll} onkeydown={() => {}}></div>
 {/if}
@@ -639,6 +711,11 @@
   .dropdown-hint {
     font-size: 11px;
     color: #aeaeb2;
+  }
+
+  .dropdown-check {
+    display: inline-block;
+    width: 1.2em;
   }
 
   .save-btn {

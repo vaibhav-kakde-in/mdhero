@@ -57,6 +57,9 @@
     "pdfTitleNoFile": "Exportar PDF (abre primero un archivo)",
     "pdfTitleEditing": "Exportar PDF (sale del modo edición para usarlo)",
     "pdfTitle": "Exportar PDF",
+    "templateTitle": "Plantilla de documento",
+    "templateTitleNoFile": "Plantilla de documento (abre un archivo primero)",
+    "templateFollowDocument": "Según el documento",
     "settings": "Configuración ({mod}+,)",
     "settingsAria": "Configuración",
     "theme": "Cambiar tema"
@@ -211,7 +214,35 @@
     "aiLookup": "Búsqueda IA",
     "aiLookupHint": "Haz clic derecho en el texto seleccionado del visor para enviarlo a una herramienta de IA. Gestiona proveedores y mensajes guardados abajo.",
     "language": "Idioma",
-    "languageHint": "Idioma de la interfaz."
+    "languageHint": "Idioma de la interfaz.",
+    "templates": "Plantillas de documento",
+    "defaultTemplate": "Plantilla predeterminada",
+    "defaultTemplateHint": "Se usa cuando un documento no elige una con {code} en su frontmatter.",
+    "pageSize": "Tamaño de página",
+    "pageSizeHint": "Tamaño de papel para plantillas y exportación a PDF, salvo que el documento indique {code}.",
+    "pageSizeLetter": "Carta (EE. UU.)",
+    "pageSizeA4": "A4",
+    "templatesHint": "Tus plantillas están en la carpeta de plantillas, una carpeta por plantilla con template.css y template.json. Duplica una plantilla para partir de ella; los cambios aparecen en cuanto guardas el archivo."
+  },
+  "templates": {
+    "none": "Ninguna (vista de lectura)",
+    "report": "Informe",
+    "letter": "Carta",
+    "memo": "Memorando"
+  },
+  "templateSettings": {
+    "builtin": "Integrada",
+    "yours": "Tuya",
+    "replacesBuiltin": "Tuya, sustituye a la integrada",
+    "duplicate": "Duplicar",
+    "delete": "Eliminar",
+    "deleteConfirm": "¿Eliminar la plantilla «{name}»?",
+    "copyName": "{name} (copia)",
+    "created": "Plantilla «{id}» creada",
+    "failed": "No ha funcionado.",
+    "refused": "CSS no cargado: {reason}",
+    "openFolder": "Abrir carpeta de plantillas",
+    "importCss": "Importar CSS…"
   },
   "toc": {
     "onThisPage": "En esta página",

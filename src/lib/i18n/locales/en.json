@@ -57,6 +57,9 @@
     "pdfTitleNoFile": "Export PDF (open a file first)",
     "pdfTitleEditing": "Export PDF (exit edit mode to use)",
     "pdfTitle": "Export PDF",
+    "templateTitle": "Document template",
+    "templateTitleNoFile": "Document template (open a file first)",
+    "templateFollowDocument": "Follow document",
     "settings": "Settings ({mod}+,)",
     "settingsAria": "Settings",
     "theme": "Toggle theme"
@@ -211,7 +214,35 @@
     "aiLookup": "AI Lookup",
     "aiLookupHint": "Right-click selected text in the viewer to send it to an AI tool. Manage providers and saved prompts below.",
     "language": "Language",
-    "languageHint": "Interface display language."
+    "languageHint": "Interface display language.",
+    "templates": "Document templates",
+    "defaultTemplate": "Default template",
+    "defaultTemplateHint": "Used when a document doesn't choose one with {code} in its frontmatter.",
+    "pageSize": "Page size",
+    "pageSizeHint": "Paper size for templates and PDF export, unless a document sets {code}.",
+    "pageSizeLetter": "US Letter",
+    "pageSizeA4": "A4",
+    "templatesHint": "Your own templates live in the templates folder, one folder each holding template.css and template.json. Duplicate a template to start from it; changes show up as soon as you save the file."
+  },
+  "templates": {
+    "none": "None (reader view)",
+    "report": "Report",
+    "letter": "Letter",
+    "memo": "Memo"
+  },
+  "templateSettings": {
+    "builtin": "Built-in",
+    "yours": "Yours",
+    "replacesBuiltin": "Yours, replaces the built-in",
+    "duplicate": "Duplicate",
+    "delete": "Delete",
+    "deleteConfirm": "Delete the template “{name}”?",
+    "copyName": "{name} (copy)",
+    "created": "Created template “{id}”",
+    "failed": "That didn't work.",
+    "refused": "CSS not loaded: {reason}",
+    "openFolder": "Open templates folder",
+    "importCss": "Import CSS…"
   },
   "toc": {
     "onThisPage": "On this page",
