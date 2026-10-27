@@ -59,7 +59,12 @@
     "pdfTitle": "Exporter en PDF",
     "settings": "Paramètres ({mod}+,)",
     "settingsAria": "Paramètres",
-    "theme": "Changer de thème"
+    "pageTheme": "Thème de la page : {mode}",
+    "interfaceTheme": "Thème de l'interface : {mode}",
+    "themeSystem": "Système",
+    "themeSameAsInterface": "Comme l'interface",
+    "themeLight": "Clair",
+    "themeDark": "Sombre"
   },
   "statusbar": {
     "words": {
@@ -199,6 +204,8 @@
     "openInExistingWindowHint": "Les fichiers ouverts depuis le gestionnaire de fichiers ou la ligne de commande deviennent des onglets ici au lieu de nouvelles fenêtres. S'applique au prochain lancement de MDHero.",
     "tabsOnSide": "Onglets sur le côté",
     "tabsOnSideHint": "Afficher les fichiers ouverts dans un panneau redimensionnable à gauche plutôt que sur une rangée en haut.",
+    "separatePageTheme": "Thème de page séparé",
+    "separatePageThemeHint": "Ajoute un bouton de page dans la barre d'outils pour que la page soit claire ou sombre indépendamment de l'interface. Désactivé : la page suit l'interface.",
     "autoPresentMarp": "Présenter automatiquement les présentations Marp",
     "autoPresentMarpHint": "Ouvrir les documents avec {code} dans le frontmatter comme un diaporama.",
     "autoCheckUpdates": "Rechercher les mises à jour automatiquement",

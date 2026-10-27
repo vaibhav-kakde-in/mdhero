@@ -59,7 +59,12 @@
     "pdfTitle": "Export PDF",
     "settings": "Settings ({mod}+,)",
     "settingsAria": "Settings",
-    "theme": "Toggle theme"
+    "pageTheme": "Page theme: {mode}",
+    "interfaceTheme": "Interface theme: {mode}",
+    "themeSystem": "System",
+    "themeSameAsInterface": "Same as interface",
+    "themeLight": "Light",
+    "themeDark": "Dark"
   },
   "statusbar": {
     "words": {
@@ -199,6 +204,8 @@
     "openInExistingWindowHint": "Files opened from your file manager or the command line become tabs here instead of new windows. Applies from the next launch of MDHero.",
     "tabsOnSide": "Tabs on the side",
     "tabsOnSideHint": "Show open files in a resizable panel on the left instead of a row across the top.",
+    "separatePageTheme": "Separate page theme",
+    "separatePageThemeHint": "Adds a page button to the toolbar so the page can be light or dark apart from the interface. Off: the page follows the interface.",
     "autoPresentMarp": "Auto-present Marp decks",
     "autoPresentMarpHint": "Open documents with {code} frontmatter as a slideshow.",
     "autoCheckUpdates": "Check for updates automatically",

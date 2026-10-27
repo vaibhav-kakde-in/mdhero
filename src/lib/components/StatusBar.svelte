@@ -73,6 +73,30 @@
     color: #3a3a3c;
   }
 
+  /* Over the rendered page the bar takes the page theme rather than the
+     interface's, or a light page in a dark window carries a dark band. The raw
+     view shows no page, so it keeps the interface's. Both themes are spelled
+     out, after the rules above, as the window around the page is in +page. */
+  :global(html .page-canvas) .status-bar {
+    background: rgba(250, 250, 250, 0.85);
+    border-top-color: #e5e5ea;
+    color: #aeaeb2;
+  }
+
+  :global(html .page-canvas) .sep {
+    color: #d1d1d6;
+  }
+
+  :global(html.page-dark .page-canvas) .status-bar {
+    background: rgba(22, 22, 24, 0.85);
+    border-top-color: #2c2c2e;
+    color: #636366;
+  }
+
+  :global(html.page-dark .page-canvas) .sep {
+    color: #3a3a3c;
+  }
+
   @media print {
     .status-bar { display: none !important; }
   }

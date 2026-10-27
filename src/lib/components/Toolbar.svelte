@@ -2,11 +2,11 @@
   import { document } from "../stores/document";
   import { MOD } from "$lib/utils/platform";
   import { settings } from "../stores/settings";
-  import { themeMode, cycleTheme } from "../stores/theme";
+  import { themeMode, cycleTheme, cyclePageTheme } from "../stores/theme";
   import { tocVisible, tocEntries, toggleToc, activeHeadingId } from "../stores/toc";
   import { openFileDialog } from "../tauri/files";
   import { copyAsRichText, copyAsMarkdown } from "../utils/clipboard";
-  import { t, translate } from "$lib/i18n";
+  import { t, translate, type MessageKey } from "$lib/i18n";
   import ReaderControls from "./ReaderControls.svelte";
   import brandLogo from "$lib/assets/mdhero-icon.png";
 
@@ -76,6 +76,11 @@
     themeMode.update((m) => cycleTheme(m));
   }
 
+  function handlePageThemeToggle() {
+    closeAll();
+    settings.update((s) => ({ ...s, pageTheme: cyclePageTheme(s.pageTheme) }));
+  }
+
   function toggleWidthMode() {
     closeAll();
     settings.update((s) => ({
@@ -116,6 +121,13 @@
       default: return "\u25D1";
     }
   }
+
+  const THEME_NAMES: Record<string, MessageKey> = {
+    system: "toolbar.themeSystem",
+    auto: "toolbar.themeSameAsInterface",
+    light: "toolbar.themeLight",
+    dark: "toolbar.themeDark",
+  };
 </script>
 
 <header class="toolbar">
@@ -341,7 +353,35 @@
       </svg>
     </button>
 
-    <button onclick={handleThemeToggle} class="btn btn-icon" title={$t('toolbar.theme')}>
+    <!-- The rendered page has its own theme, apart from the interface's: a
+         page icon filled with the page's own background (+page.svelte), so it
+         reads the same in either interface theme: light, dark, or half of
+         each (same as the interface). Only with "Separate page theme" on in
+         the settings. -->
+    {#if $settings.separatePageTheme}
+    <button
+      onclick={handlePageThemeToggle}
+      class="btn btn-icon page-theme-btn"
+      title={$t('toolbar.pageTheme', { mode: $t(THEME_NAMES[$settings.pageTheme]) })}
+      aria-label={$t('toolbar.pageTheme', { mode: $t(THEME_NAMES[$settings.pageTheme]) })}
+    >
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round">
+        <path d="M3.5 1.5h6L13 5v9.5H3.5z" fill={$settings.pageTheme === "dark" ? "#161618" : "#fafafa"} stroke="none" />
+        {#if $settings.pageTheme === "auto"}
+          <path d="M8.25 1.5h1.25L13 5v9.5H8.25z" fill="#161618" stroke="none" />
+        {/if}
+        <path d="M3.5 1.5h6L13 5v9.5H3.5z" />
+        <path d="M9.5 1.5V5H13" />
+      </svg>
+    </button>
+    {/if}
+
+    <button
+      onclick={handleThemeToggle}
+      class="btn btn-icon"
+      title={$t('toolbar.interfaceTheme', { mode: $t(THEME_NAMES[$themeMode]) })}
+      aria-label={$t('toolbar.interfaceTheme', { mode: $t(THEME_NAMES[$themeMode]) })}
+    >
       {getThemeIcon($themeMode)}
     </button>
   </div>
@@ -363,6 +403,12 @@
     align-items: center;
     justify-content: space-between;
     padding: 6px 12px;
+    /* The side tabs, the editor and the preview start at SIDE_TABS_CHROME
+       (utils/layout.ts) whatever the bar's own height turns out to be. A bar a
+       pixel short leaves a strip of the window showing under it: dark and
+       unseen while the window is the interface's colour, a light line in the
+       viewer once the page canvas is lighter. */
+    min-height: 44px;
     background: rgba(250, 250, 250, 0.85);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -372,6 +418,20 @@
   :global(html.dark) .toolbar {
     background: rgba(22, 22, 24, 0.85);
     border-bottom-color: #2c2c2e;
+  }
+
+  /* The bar is translucent, so it takes a tint from what sits behind it: the
+     page canvas in the viewer, the window in the editor. When the page's theme
+     differs from the interface's those are different colours, and the bar
+     would change shade from one mode to the next (grey over a light page,
+     black over the window). Back it with the interface's own colour then. In
+     Auto the two agree and the bar stays as it was. */
+  :global(html.dark:not(.page-dark)) .toolbar {
+    background: rgb(22, 22, 24);
+  }
+
+  :global(html:not(.dark).page-dark) .toolbar {
+    background: rgb(250, 250, 250);
   }
 
   .toolbar-left {

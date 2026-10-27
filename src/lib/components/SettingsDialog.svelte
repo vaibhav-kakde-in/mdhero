@@ -127,6 +127,19 @@
 
           <label class="setting-row">
             <div class="setting-text">
+              <span class="setting-label">{$t('settings.separatePageTheme')}</span>
+              <span class="setting-hint">{$t('settings.separatePageThemeHint')}</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={$settings.separatePageTheme}
+              onchange={(e) => settings.update((s) => ({ ...s, separatePageTheme: e.currentTarget.checked }))}
+              class="setting-switch"
+            />
+          </label>
+
+          <label class="setting-row">
+            <div class="setting-text">
               <span class="setting-label">{$t('settings.autoPresentMarp')}</span>
               <span class="setting-hint">{#each $t('settings.autoPresentMarpHint').split('{code}') as part, i}{#if i > 0}<code>marp: true</code>{/if}{part}{/each}</span>
             </div>

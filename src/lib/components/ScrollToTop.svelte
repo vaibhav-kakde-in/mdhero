@@ -61,6 +61,30 @@
     background: #3a3a3c;
   }
 
+  /* Over the rendered page the button takes the page theme rather than the
+     interface's (see StatusBar). The raw view keeps the interface's. */
+  :global(html .page-canvas) .scroll-top {
+    background: white;
+    border-color: #e5e5ea;
+    color: #636366;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  :global(html .page-canvas) .scroll-top:hover {
+    background: #f2f2f7;
+  }
+
+  :global(html.page-dark .page-canvas) .scroll-top {
+    background: #2c2c2e;
+    border-color: #3a3a3c;
+    color: #aeaeb2;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  :global(html.page-dark .page-canvas) .scroll-top:hover {
+    background: #3a3a3c;
+  }
+
   @media print {
     .scroll-top { display: none !important; }
   }

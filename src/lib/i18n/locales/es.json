@@ -59,7 +59,12 @@
     "pdfTitle": "Exportar PDF",
     "settings": "Configuración ({mod}+,)",
     "settingsAria": "Configuración",
-    "theme": "Cambiar tema"
+    "pageTheme": "Tema de la página: {mode}",
+    "interfaceTheme": "Tema de la interfaz: {mode}",
+    "themeSystem": "Sistema",
+    "themeSameAsInterface": "Igual que la interfaz",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro"
   },
   "statusbar": {
     "words": {
@@ -199,6 +204,8 @@
     "openInExistingWindowHint": "Los archivos abiertos desde el explorador de archivos o la línea de comandos se abren aquí como pestañas en lugar de en ventanas nuevas. Se aplica a partir del próximo inicio de MDHero.",
     "tabsOnSide": "Pestañas laterales",
     "tabsOnSideHint": "Mostrar los archivos abiertos en un panel redimensionable a la izquierda en lugar de en una fila en la parte superior.",
+    "separatePageTheme": "Tema de página independiente",
+    "separatePageThemeHint": "Añade un botón de página a la barra de herramientas para que la página sea clara u oscura independientemente de la interfaz. Desactivado: la página sigue a la interfaz.",
     "autoPresentMarp": "Presentar automáticamente las diapositivas Marp",
     "autoPresentMarpHint": "Abrir documentos con {code} en el frontmatter como presentación.",
     "autoCheckUpdates": "Buscar actualizaciones automáticamente",

@@ -5,6 +5,7 @@
   import { gutterHtml as buildGutterHtml, gutterWidth as buildGutterWidth, lineCount as countLines } from "$lib/utils/line-gutter";
   import { highlightMarkdownLines } from "$lib/utils/markdown-highlight";
   import { patchLines } from "$lib/utils/line-patch";
+  import { pageDark } from "$lib/stores/theme";
 
   let {
     value,
@@ -25,6 +26,12 @@
     syntaxHighlighting?: boolean;
     split?: boolean;
   } = $props();
+
+  // The editor holds the document's source, so it takes the page's theme, on
+  // its own as well as next to the preview (split mode): the text keeps the
+  // look the user chose for the document whatever the interface is in. Its
+  // styles key off this rather than `html.dark`.
+  let dark = $derived($pageDark);
 
   let textareaEl: HTMLTextAreaElement | undefined = $state();
   let backdropEl: HTMLDivElement | undefined = $state();
@@ -187,7 +194,7 @@
   }
 </script>
 
-<div class="editor-wrap" class:split>
+<div class="editor-wrap" class:split class:editor-dark={dark}>
   <div class="editor-stack" class:with-gutter={showLineNumbers} style="max-width: {maxWidth}; --gutter-w: {gutterWidth};">
     {#if showLineNumbers}
       <!-- Line-number gutter: a transparent mirror wrapping identically to the
@@ -256,7 +263,7 @@
     z-index: 1;
   }
 
-  :global(html.dark) .editor-wrap {
+  .editor-wrap.editor-dark {
     background: #161618;
   }
 
@@ -267,7 +274,7 @@
     border-right: 1px solid #e5e5e5;
   }
 
-  :global(html.dark) .editor-wrap.split {
+  .editor-wrap.split.editor-dark {
     border-right-color: #2c2c2e;
   }
 
@@ -317,8 +324,18 @@
     z-index: 1;
   }
 
-  :global(html.dark) .editor {
+  .editor-wrap.editor-dark .editor {
     color: #e5e5e7;
+  }
+
+  /* The scrollbar takes the editor's theme, not the window's, or a light editor
+     in a dark window carries a dark thumb. */
+  .editor::-webkit-scrollbar-thumb {
+    background: #c1c1c4;
+  }
+
+  .editor-wrap.editor-dark .editor::-webkit-scrollbar-thumb {
+    background: #3a3a3c;
   }
 
   .editor::placeholder {
@@ -337,7 +354,7 @@
   /* Repeats `color: transparent`: the dark `.editor` rule above is more
      specific than `.editor.highlighted` and would paint the plain text back
      over the colored layer. */
-  :global(html.dark) .editor.highlighted {
+  .editor-wrap.editor-dark .editor.highlighted {
     color: transparent;
     caret-color: #e5e5e7;
   }
@@ -347,7 +364,7 @@
     background: rgba(0, 122, 255, 0.22);
   }
 
-  :global(html.dark) .editor.highlighted::selection {
+  .editor-wrap.editor-dark .editor.highlighted::selection {
     background: rgba(10, 132, 255, 0.35);
   }
 
@@ -363,7 +380,7 @@
     color: #1c1c1e;
   }
 
-  :global(html.dark) .editor-backdrop.editor-syntax {
+  .editor-wrap.editor-dark .editor-backdrop.editor-syntax {
     color: #e5e5e7;
   }
 
@@ -399,20 +416,20 @@
   .editor-syntax :global(.md-meta) { color: #57606a; }
   .editor-syntax :global(.md-key) { color: #953800; }
 
-  :global(html.dark) .editor-syntax :global(.md-mark) { color: #6e7681; }
-  :global(html.dark) .editor-syntax :global(.md-heading) { color: #79c0ff; }
-  :global(html.dark) .editor-syntax :global(.md-strike) { color: #8b949e; }
-  :global(html.dark) .editor-syntax :global(.md-code) { color: #d2a8ff; }
-  :global(html.dark) .editor-syntax :global(.md-math) { color: #7ee787; }
-  :global(html.dark) .editor-syntax :global(.md-link) {
+  .editor-wrap.editor-dark .editor-syntax :global(.md-mark) { color: #6e7681; }
+  .editor-wrap.editor-dark .editor-syntax :global(.md-heading) { color: #79c0ff; }
+  .editor-wrap.editor-dark .editor-syntax :global(.md-strike) { color: #8b949e; }
+  .editor-wrap.editor-dark .editor-syntax :global(.md-code) { color: #d2a8ff; }
+  .editor-wrap.editor-dark .editor-syntax :global(.md-math) { color: #7ee787; }
+  .editor-wrap.editor-dark .editor-syntax :global(.md-link) {
     color: #58a6ff;
     text-decoration-color: rgba(88, 166, 255, 0.4);
   }
-  :global(html.dark) .editor-syntax :global(.md-url) { color: #8b949e; }
-  :global(html.dark) .editor-syntax :global(.md-list) { color: #ffa657; }
-  :global(html.dark) .editor-syntax :global(.md-quote) { color: #9198a1; }
-  :global(html.dark) .editor-syntax :global(.md-meta) { color: #9198a1; }
-  :global(html.dark) .editor-syntax :global(.md-key) { color: #ffa657; }
+  .editor-wrap.editor-dark .editor-syntax :global(.md-url) { color: #8b949e; }
+  .editor-wrap.editor-dark .editor-syntax :global(.md-list) { color: #ffa657; }
+  .editor-wrap.editor-dark .editor-syntax :global(.md-quote) { color: #9198a1; }
+  .editor-wrap.editor-dark .editor-syntax :global(.md-meta) { color: #9198a1; }
+  .editor-wrap.editor-dark .editor-syntax :global(.md-key) { color: #ffa657; }
 
   /* With the gutter on, both text layers shift right by the gutter width so
      their text starts after the numbers and still wraps at a matching width. */
@@ -451,7 +468,7 @@
     color: #b0b0b5;
   }
 
-  :global(html.dark) .editor-gutter :global(.gl)::before {
+  .editor-wrap.editor-dark .editor-gutter :global(.gl)::before {
     color: #5a5a5e;
   }
 
@@ -461,7 +478,7 @@
     background: rgba(0, 0, 0, 0.035);
   }
 
-  :global(html.dark) .editor-gutter :global(.gl.active) {
+  .editor-wrap.editor-dark .editor-gutter :global(.gl.active) {
     background: rgba(255, 255, 255, 0.045);
   }
 
@@ -470,7 +487,7 @@
     font-weight: 500;
   }
 
-  :global(html.dark) .editor-gutter :global(.gl.active)::before {
+  .editor-wrap.editor-dark .editor-gutter :global(.gl.active)::before {
     color: #c8c8cd;
   }
 
@@ -489,7 +506,7 @@
     pointer-events: none;
   }
 
-  :global(html.dark) .editor-stack.with-gutter::before {
+  .editor-wrap.editor-dark .editor-stack.with-gutter::before {
     border-right-color: rgba(255, 255, 255, 0.07);
     background: rgba(255, 255, 255, 0.02);
   }
@@ -502,7 +519,7 @@
     border-radius: 2px;
   }
 
-  :global(html.dark) .editor-backdrop :global(mark.mdv-search-highlight) {
+  .editor-wrap.editor-dark .editor-backdrop :global(mark.mdv-search-highlight) {
     background-color: #854d0e;
   }
 
@@ -511,7 +528,7 @@
     background-color: #f97316 !important;
   }
 
-  :global(html.dark) .editor-backdrop :global(mark.mdv-search-active) {
+  .editor-wrap.editor-dark .editor-backdrop :global(mark.mdv-search-active) {
     background-color: #ea580c !important;
   }
 </style>

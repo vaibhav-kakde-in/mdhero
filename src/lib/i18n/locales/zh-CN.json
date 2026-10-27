@@ -59,7 +59,12 @@
     "pdfTitle": "导出 PDF",
     "settings": "设置 ({mod}+,)",
     "settingsAria": "设置",
-    "theme": "切换主题"
+    "pageTheme": "页面主题：{mode}",
+    "interfaceTheme": "界面主题：{mode}",
+    "themeSystem": "跟随系统",
+    "themeSameAsInterface": "与界面相同",
+    "themeLight": "浅色",
+    "themeDark": "深色"
   },
   "statusbar": {
     "words": {
@@ -198,6 +203,8 @@
     "openInExistingWindowHint": "从文件管理器或命令行打开的文件会作为标签页在此打开，而不是打开新窗口。下次启动 MDHero 时生效。",
     "tabsOnSide": "侧边标签页",
     "tabsOnSideHint": "在左侧可调整宽度的面板中显示已打开的文件，而不是在顶部排成一行。",
+    "separatePageTheme": "独立的页面主题",
+    "separatePageThemeHint": "在工具栏中添加页面按钮，使页面可独立于界面选择浅色或深色。关闭时：页面跟随界面。",
     "autoPresentMarp": "自动演示 Marp 幻灯片",
     "autoPresentMarpHint": "frontmatter 包含 {code} 的文档以幻灯片方式打开。",
     "autoCheckUpdates": "自动检查更新",

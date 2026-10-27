@@ -24,6 +24,7 @@ const BOOLEANS = [
   ["restoreTabsOnLaunch", true],
   ["wrapCodeBlocks", false],
   ["autoCheckUpdates", true],
+  ["separatePageTheme", false],
 ] as const;
 
 describe.each(BOOLEANS)("the stored %s setting", (key, fallback) => {
