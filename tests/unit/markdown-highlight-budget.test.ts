@@ -7,10 +7,26 @@ import { highlightMarkdownLines } from "../../src/lib/utils/markdown-highlight";
  * every keystroke, and 20 such lines (195 KB) froze editing for 2–4 s per key.
  * The scan now runs under a per-line work budget (STEPS_PER_CHAR).
  *
- * The time limit is about 10× what these take now, and under every one of the
- * old timings (the fastest old case took 966 ms), so each case catches the
- * quadratic behaviour coming back without being flaky on a slow CI runner.
+ * A fixed millisecond limit was flaky: each case was timed once, cold, while
+ * the rest of the suite ran in parallel, and took 500–750 ms that way against
+ * 20–60 ms on its own. So each case is now timed against ordinary text of the
+ * same length, measured the same way at the same moment: load slows both
+ * alike. Warmed up, best of three. These run at 4–9× ordinary text; the old
+ * quadratic behaviour ran at well over 100×.
  */
+const SLOWER_THAN_ORDINARY = 40;
+const ORDINARY = "Some **bold** and _em_ with `code` and [a link](https://x.org). ";
+
+function fastestRun(text: string): number {
+  highlightMarkdownLines(text);
+  let best = Infinity;
+  for (let i = 0; i < 3; i++) {
+    const start = performance.now();
+    highlightMarkdownLines(text);
+    best = Math.min(best, performance.now() - start);
+  }
+  return best;
+}
 const PATHOLOGICAL: [string, string][] = [
   ["unmatched [", "[".repeat(9999)],
   ["[ with one ] at the end", "[".repeat(9998) + "]"],
@@ -25,10 +41,10 @@ const PATHOLOGICAL: [string, string][] = [
 describe("pathological lines stay fast", () => {
   it.each(PATHOLOGICAL)("%s", (_label, line) => {
     const text = Array(20).fill(line).join("\n");
-    const start = performance.now();
-    const out = highlightMarkdownLines(text);
-    expect(performance.now() - start).toBeLessThan(500);
-    expect(out).toHaveLength(20);
+    const ordinary = Array(20).fill(ORDINARY.repeat(Math.ceil(line.length / ORDINARY.length)).slice(0, line.length)).join("\n");
+    expect(highlightMarkdownLines(text)).toHaveLength(20);
+    const slowest = SLOWER_THAN_ORDINARY * fastestRun(ordinary);
+    expect(fastestRun(text)).toBeLessThan(slowest);
   });
 });
 
