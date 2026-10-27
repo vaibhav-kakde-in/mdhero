@@ -521,6 +521,34 @@
     accent-color: #0891B2;
   }
 
+  /* Footnotes */
+  article :global(.footnote-ref a) {
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  article :global(.footnotes) {
+    font-size: 0.875em;
+    color: #636366;
+  }
+
+  :global(html.dark) article :global(.footnotes) {
+    color: #8e8e93;
+  }
+
+  article :global(hr.footnotes-sep) {
+    margin: 2.5em 0 1em;
+  }
+
+  article :global(.footnote-backref) {
+    text-decoration: none;
+  }
+
+  article :global(.footnote-item:target) {
+    background: rgba(8, 145, 178, 0.08);
+    border-radius: 4px;
+  }
+
   /* Links */
   article :global(a) {
     color: #0891B2;

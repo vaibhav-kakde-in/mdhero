@@ -3,6 +3,7 @@ import DOMPurify from "dompurify";
 import taskLists from "markdown-it-task-lists";
 import anchor from "markdown-it-anchor";
 import texmath from "markdown-it-texmath";
+import footnote from "markdown-it-footnote";
 import katex from "katex";
 import hljs from "highlight.js/lib/core";
 import { convertFileSrc } from "@tauri-apps/api/core";
@@ -236,6 +237,13 @@ function addDirPlugin(mdInstance: MarkdownIt) {
   });
 }
 
+function addFootnotes(mdInstance: MarkdownIt) {
+  mdInstance.use(footnote);
+  // A bare superscript number, as GitHub shows it, rather than the plugin's `[1]`
+  // or `[1:1]` for a note cited twice.
+  mdInstance.renderer.rules.footnote_caption = (tokens, idx) => String(tokens[idx].meta.id + 1);
+}
+
 export async function initRenderer(): Promise<void> {
   if (initialized) return;
 
@@ -262,6 +270,7 @@ export async function initRenderer(): Promise<void> {
   });
 
   md.use(taskLists, { enabled: false, label: true });
+  addFootnotes(md);
   md.use(anchor, {
     permalink: false,
     slugify: (s: string) =>
@@ -302,6 +311,7 @@ export function renderFull(markdown: string, baseDir?: string): RenderResult {
   });
     md.use(texmath, { engine: katex, delimiters: "dollars" });
     md.use(taskLists, { enabled: false, label: true });
+    addFootnotes(md);
     md.use(anchor, {
       permalink: false,
       slugify: (s: string) => s.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-"),
