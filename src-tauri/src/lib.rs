@@ -2,6 +2,7 @@ mod commands;
 pub mod menu;
 mod single_window;
 mod watcher;
+mod window_restore;
 
 use std::sync::Mutex;
 use tauri::Manager;
@@ -148,6 +149,7 @@ pub fn run() {
             // quit_app (AppHandle::exit) is a hard exit that bypasses this, so a
             // confirmed quit can't loop back here.
             if let Some(main_window) = app.get_webview_window("main") {
+                window_restore::keep_restored_client_size(&main_window);
                 let quit_win = main_window.clone();
                 main_window.on_window_event(move |event| {
                     if let tauri::WindowEvent::CloseRequested { api, .. } = event {
