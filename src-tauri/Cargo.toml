@@ -36,6 +36,13 @@ tauri-plugin-updater = "2"
 [target.'cfg(any(target_os = "windows", target_os = "linux"))'.dependencies]
 tauri-plugin-single-instance = "2"
 
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
 [dev-dependencies]
 # `test` enables Tauri's mock runtime (tauri::test) used by the menu test.
 tauri = { version = "2", features = ["test"] }
