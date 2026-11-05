@@ -572,6 +572,23 @@
     }
   }
 
+  // Close several tabs one after the other (#127): the tab menu's Close Other
+  // Tabs / Tabs to the Right / All Tabs, and File > Close All Tabs. Each goes
+  // through handleCloseTab, so a tab with unsaved changes asks first, and the
+  // first Cancel (or failed save) stops there, leaving the rest open.
+  let closeManyInFlight = false;
+  async function closeTabs(ids: string[]) {
+    if (closeManyInFlight) return;
+    closeManyInFlight = true;
+    try {
+      for (const id of ids) {
+        if (!(await handleCloseTab(id))) break;
+      }
+    } finally {
+      closeManyInFlight = false;
+    }
+  }
+
   // Close-on-ESC: close the active file tab, and quit the app if it was the last
   // one (on macOS closing the window alone leaves the app in the dock). Async
   // because the dirty-confirm dialog is — a cancelled discard must not quit.
@@ -621,6 +638,9 @@
     // either: the shortcut and the menu item were both dead.
     (window as any).__mdhero_close_tab = () => {
       void closeActiveTab();
+    };
+    (window as any).__mdhero_close_all_tabs = () => {
+      void closeTabs($tabs.map((t) => t.id));
     };
     (window as any).__mdhero_print = () => {
       printDocument();
@@ -1206,7 +1226,7 @@
       presenting={presenting}
       onTogglePresent={togglePresent}
     />
-    <TabBar onCloseTab={handleCloseTab} />
+    <TabBar onCloseTab={handleCloseTab} onCloseTabs={closeTabs} />
   {/if}
   <DropZone />
   {#if !zenMode && !activeTab?.isEditing}

@@ -164,6 +164,7 @@ const MENU_KEYS = [
   "menu.pasteMarkdown",
   "menu.print",
   "menu.closeTab",
+  "menu.closeAllTabs",
   "menu.edit",
   "menu.cut",
   "menu.copy",

@@ -176,6 +176,9 @@ pub fn run() {
                         "close" => {
                             let _ = window.eval("window.__mdhero_close_tab?.()");
                         }
+                        "close_all" => {
+                            let _ = window.eval("window.__mdhero_close_all_tabs?.()");
+                        }
                         "print" => {
                             let _ = window.eval("window.__mdhero_print?.()");
                         }
