@@ -108,6 +108,14 @@ pub fn create_menu_with_labels<R: Runtime>(
                 true,
                 Some("CmdOrCtrl+W"),
             )?,
+            // No accelerator: Cmd/Ctrl+Shift+W closes the window in most apps.
+            &MenuItem::with_id(
+                app,
+                "close_all",
+                tr(labels, "menu.closeAllTabs", "Close All Tabs"),
+                true,
+                None::<&str>,
+            )?,
         ],
     )?;
 
