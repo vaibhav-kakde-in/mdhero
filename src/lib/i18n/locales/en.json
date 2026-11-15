@@ -199,6 +199,8 @@
     "openInExistingWindowHint": "Files opened from your file manager or the command line become tabs here instead of new windows. Applies from the next launch of MDHero.",
     "tabsOnSide": "Tabs on the side",
     "tabsOnSideHint": "Show open files in a resizable panel on the left instead of a row across the top.",
+    "absoluteImagePaths": "Image links as absolute paths",
+    "absoluteImagePathsHint": "Rewrite relative image links to file:/// absolute URLs (instead of the app's internal asset URLs), so images still appear when the rendered document is copied into other apps on this PC.",
     "autoPresentMarp": "Auto-present Marp decks",
     "autoPresentMarpHint": "Open documents with {code} frontmatter as a slideshow.",
     "autoCheckUpdates": "Check for updates automatically",

@@ -198,6 +198,8 @@
     "openInExistingWindowHint": "从文件管理器或命令行打开的文件会作为标签页在此打开，而不是打开新窗口。下次启动 MDHero 时生效。",
     "tabsOnSide": "侧边标签页",
     "tabsOnSideHint": "在左侧可调整宽度的面板中显示已打开的文件，而不是在顶部排成一行。",
+    "absoluteImagePaths": "图片使用绝对路径链接",
+    "absoluteImagePathsHint": "开启后，文档内的图片链接将改写为本机 file:/// 绝对路径（而非应用内部地址），复制到本机其他应用（如 Word、浏览器）后图片仍可显示。",
     "autoPresentMarp": "自动演示 Marp 幻灯片",
     "autoPresentMarpHint": "frontmatter 包含 {code} 的文档以幻灯片方式打开。",
     "autoCheckUpdates": "自动检查更新",

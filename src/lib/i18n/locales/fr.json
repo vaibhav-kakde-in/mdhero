@@ -199,6 +199,8 @@
     "openInExistingWindowHint": "Les fichiers ouverts depuis le gestionnaire de fichiers ou la ligne de commande deviennent des onglets ici au lieu de nouvelles fenêtres. S'applique au prochain lancement de MDHero.",
     "tabsOnSide": "Onglets sur le côté",
     "tabsOnSideHint": "Afficher les fichiers ouverts dans un panneau redimensionnable à gauche plutôt que sur une rangée en haut.",
+    "absoluteImagePaths": "Liens d'image en chemins absolus",
+    "absoluteImagePathsHint": "Réécrit les liens d'image relatifs en URL absolues file:/// (au lieu des URL internes de l'app), afin que les images restent visibles lorsque le document rendu est copié dans d'autres apps de ce PC.",
     "autoPresentMarp": "Présenter automatiquement les présentations Marp",
     "autoPresentMarpHint": "Ouvrir les documents avec {code} dans le frontmatter comme un diaporama.",
     "autoCheckUpdates": "Rechercher les mises à jour automatiquement",

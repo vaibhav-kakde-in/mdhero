@@ -6,6 +6,9 @@ import texmath from "markdown-it-texmath";
 import katex from "katex";
 import hljs from "highlight.js/lib/core";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { get } from "svelte/store";
+import { settings } from "../stores/settings";
+import { addHtmlExtPlugin } from "./html-ext";
 
 // Register common languages
 import javascript from "highlight.js/lib/languages/javascript";
@@ -273,6 +276,7 @@ export async function initRenderer(): Promise<void> {
   });
   addSourceLinePlugin(md);
   addDirPlugin(md);
+  addHtmlExtPlugin(md);
 
   initialized = true;
 }
@@ -308,6 +312,7 @@ export function renderFull(markdown: string, baseDir?: string): RenderResult {
     });
     addSourceLinePlugin(md);
     addDirPlugin(md);
+    addHtmlExtPlugin(md);
     initialized = true;
   }
 
@@ -373,15 +378,38 @@ export function renderFull(markdown: string, baseDir?: string): RenderResult {
   return { html, frontmatter, wordCount, assetPaths, isMarp: isMarpDoc(frontmatter) };
 }
 
+/**
+ * Turn an absolute on-disk path into a file:/// URL (RFC 8089). Used when the
+ * `absoluteImagePaths` setting is on: the webview's asset protocol works only
+ * inside MDHero, while a file:/// URL keeps the image loadable when the
+ * rendered document is copied into other apps on this machine.
+ */
+export function toFileUrl(path: string): string {
+  // UNC \\server\share\file → file://server/share/file (the leading \\ is the
+  // authority marker; it becomes the // after file:, not part of the path).
+  if (path.startsWith("\\\\")) {
+    return "file://" + path.slice(2).replace(/\\/g, "/");
+  }
+  // /home/u/f.jpg is already absolute — only the authority slashes are added.
+  if (path.startsWith("/")) {
+    return "file://" + path;
+  }
+  // D:\a\b.jpg → file:///D:/a/b.jpg
+  return "file:///" + path.replace(/\\/g, "/");
+}
+
 function resolveRelativeImages(html: string, baseDir: string, collected: string[]): string {
+  // The setting is read at render time, so flipping it takes effect on the
+  // next render of the document (see the re-render effect in +page.svelte).
+  const absolute = get(settings).absoluteImagePaths;
   return html.replace(
     /(<img\s[^>]*?\bsrc=")(?!https?:\/\/|data:|blob:|asset:|file:)([^"]+)(")/gi,
     (_match, before, src, after) => {
       const imagePath = resolveLocalPath(src, baseDir);
       try {
-        const url = `${before}${convertFileSrc(imagePath)}${after}`;
+        const url = absolute ? toFileUrl(imagePath) : convertFileSrc(imagePath);
         collected.push(imagePath);
-        return url;
+        return `${before}${url}${after}`;
       } catch {
         return `${before}${src}${after}`;
       }
@@ -393,6 +421,7 @@ function resolveRelativeImages(html: string, baseDir: string, collected: string[
 }
 
 function resolveSrcset(srcset: string, baseDir: string, collected: string[]): string {
+  const absolute = get(settings).absoluteImagePaths;
   return srcset
     .split(",")
     .map((candidate) => {
@@ -404,7 +433,7 @@ function resolveSrcset(srcset: string, baseDir: string, collected: string[]): st
 
       try {
         const imagePath = resolveLocalPath(src, baseDir);
-        const converted = convertFileSrc(imagePath);
+        const converted = absolute ? toFileUrl(imagePath) : convertFileSrc(imagePath);
         collected.push(imagePath);
         return [converted, ...descriptor].join(" ");
       } catch {

@@ -194,6 +194,35 @@
     activeTab?.isEditing ? (splitMode ? "split" : "edit") : "view"
   );
 
+  // The pipeline reads `absoluteImagePaths` at render time, so flipping the
+  // setting has to re-render every open tab for the change to be visible
+  // without reopening files. Tabs keep their edit state through
+  // updateTabContent; the active tab's copy in docStore is refreshed too,
+  // mirroring the exit-edit re-render below.
+  let lastAbsoluteImagePaths = $state($settings.absoluteImagePaths);
+  $effect(() => {
+    const current = $settings.absoluteImagePaths;
+    if (current === lastAbsoluteImagePaths) return;
+    lastAbsoluteImagePaths = current;
+    for (const tab of $tabs) {
+      const result = renderFull(tab.content, getBaseDir(tab.filePath));
+      allowAssets(result.assetPaths, tab.filePath);
+      tabStore.updateTabContent(tab.filePath, tab.content, result.html, result.frontmatter, result.wordCount);
+      if (tab.id === $activeTabId) {
+        docStore.set({
+          filePath: tab.filePath,
+          fileName: tab.fileName,
+          content: tab.content,
+          renderedHtml: result.html,
+          frontmatter: result.frontmatter,
+          wordCount: result.wordCount,
+          loading: false,
+          error: null,
+        });
+      }
+    }
+  });
+
   // Publish the ToC width (#108) as a CSS variable so the fixed sidebar and the
   // document's left padding always agree on one number. It lives here rather
   // than in TableOfContents because that component unmounts in zen and edit

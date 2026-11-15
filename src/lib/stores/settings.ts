@@ -18,6 +18,12 @@ export interface ReaderSettings {
   tocWidth: number;
   /** Wrap long lines in rendered code blocks instead of scrolling them. */
   wrapCodeBlocks: boolean;
+  /**
+   * Rewrite relative image links to file:/// absolute URLs (instead of the
+   * webview's asset protocol), so images survive copy-paste into other apps
+   * on this machine. Off by default; the pipeline reads it at render time.
+   */
+  absoluteImagePaths: boolean;
   /** Ask GitHub once a day whether there is a newer release (#180). The
    *  manual "Check for Updates…" works either way. */
   autoCheckUpdates: boolean;
@@ -93,6 +99,7 @@ function loadSettings(): ReaderSettings {
     restoreTabsOnLaunch: true,
     tocWidth: DEFAULT_TOC_WIDTH,
     wrapCodeBlocks: false,
+    absoluteImagePaths: false,
     autoCheckUpdates: true,
     tabsPosition: "top",
     tabsWidth: DEFAULT_TABS_WIDTH,
@@ -116,6 +123,7 @@ function loadSettings(): ReaderSettings {
         autoPresentMarp: storedBoolean(parsed.autoPresentMarp, defaults.autoPresentMarp),
         restoreTabsOnLaunch: storedBoolean(parsed.restoreTabsOnLaunch, defaults.restoreTabsOnLaunch),
         wrapCodeBlocks: storedBoolean(parsed.wrapCodeBlocks, defaults.wrapCodeBlocks),
+        absoluteImagePaths: storedBoolean(parsed.absoluteImagePaths, defaults.absoluteImagePaths),
         autoCheckUpdates: storedBoolean(parsed.autoCheckUpdates, defaults.autoCheckUpdates),
         tabsPosition: parsed.tabsPosition === "side" ? "side" : "top",
         tabsWidth: clampTabsWidth(parsed.tabsWidth),

@@ -127,6 +127,19 @@
 
           <label class="setting-row">
             <div class="setting-text">
+              <span class="setting-label">{$t('settings.absoluteImagePaths')}</span>
+              <span class="setting-hint">{$t('settings.absoluteImagePathsHint')}</span>
+            </div>
+            <input
+              type="checkbox"
+              checked={$settings.absoluteImagePaths}
+              onchange={(e) => settings.update((s) => ({ ...s, absoluteImagePaths: e.currentTarget.checked }))}
+              class="setting-switch"
+            />
+          </label>
+
+          <label class="setting-row">
+            <div class="setting-text">
               <span class="setting-label">{$t('settings.autoPresentMarp')}</span>
               <span class="setting-hint">{#each $t('settings.autoPresentMarpHint').split('{code}') as part, i}{#if i > 0}<code>marp: true</code>{/if}{part}{/each}</span>
             </div>

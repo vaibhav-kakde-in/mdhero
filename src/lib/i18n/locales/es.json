@@ -199,6 +199,8 @@
     "openInExistingWindowHint": "Los archivos abiertos desde el explorador de archivos o la línea de comandos se abren aquí como pestañas en lugar de en ventanas nuevas. Se aplica a partir del próximo inicio de MDHero.",
     "tabsOnSide": "Pestañas laterales",
     "tabsOnSideHint": "Mostrar los archivos abiertos en un panel redimensionable a la izquierda en lugar de en una fila en la parte superior.",
+    "absoluteImagePaths": "Enlaces de imágenes como rutas absolutas",
+    "absoluteImagePathsHint": "Reescribe los enlaces de imagen relativos como URL absolutas file:/// (en lugar de las URL internas de la app), para que las imágenes sigan viéndose al copiar el documento renderizado en otras apps de este PC.",
     "autoPresentMarp": "Presentar automáticamente las diapositivas Marp",
     "autoPresentMarpHint": "Abrir documentos con {code} en el frontmatter como presentación.",
     "autoCheckUpdates": "Buscar actualizaciones automáticamente",
