@@ -199,6 +199,8 @@
     "openInExistingWindowHint": "Aus dem Dateimanager oder der Befehlszeile geöffnete Dateien werden hier als Tabs geöffnet statt in neuen Fenstern. Gilt ab dem nächsten Start von MDHero.",
     "tabsOnSide": "Tabs seitlich",
     "tabsOnSideHint": "Geöffnete Dateien in einem anpassbaren Bereich links statt in einer Leiste oben anzeigen.",
+    "absoluteImagePaths": "Bilder als absolute Pfade kopieren",
+    "absoluteImagePathsHint": "Beim Kopieren aus der Vorschau werden Bildadressen in absolute file:/// URLs umgeschrieben (statt der internen Asset-URLs), sodass eingefügte Inhalte in Apps auf diesem PC ihre Bilder behalten. Die Anzeige in MDHero bleibt unverändert.",
     "autoPresentMarp": "Marp-Deck automatisch präsentieren",
     "autoPresentMarpHint": "Dokumente mit {code} im Frontmatter als Slideshow öffnen.",
     "autoCheckUpdates": "Automatisch nach Updates suchen",

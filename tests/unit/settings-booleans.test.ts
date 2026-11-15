@@ -23,6 +23,7 @@ const BOOLEANS = [
   ["autoPresentMarp", true],
   ["restoreTabsOnLaunch", true],
   ["wrapCodeBlocks", false],
+  ["absoluteImagePaths", false],
   ["autoCheckUpdates", true],
 ] as const;
 

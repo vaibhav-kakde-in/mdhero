@@ -9,6 +9,7 @@
   import mermaid from "mermaid";
   import DOMPurify from "dompurify";
   import { MERMAID_SANITIZE_CONFIG } from "$lib/renderer/mermaid-sanitize";
+  import { rewriteCopiedHtml } from "$lib/renderer/pipeline";
 
   let {
     html = "",
@@ -137,13 +138,39 @@
     headings.forEach((h) => observer!.observe(h));
   }
 
+  /**
+   * Intercept copy inside the rendered article when `absoluteImagePaths` is
+   * on. The in-app DOM must keep its asset:// URLs (a WebView cannot load
+   * file:// subresources from the app's origin — Chromium blocks local
+   * resources on non-file pages), so the rewrite happens only on the way to
+   * the clipboard: the selected HTML is serialized, image addresses are
+   * converted to file:/// URLs, and both text/html and text/plain are set
+   * explicitly. With the setting off the handler returns early and the
+   * default copy proceeds untouched.
+   */
+  function handleCopy(e: ClipboardEvent) {
+    if (!get(settings).absoluteImagePaths || !e.clipboardData) return;
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) return;
+
+    const container = document.createElement("div");
+    for (let i = 0; i < selection.rangeCount; i++) {
+      container.appendChild(selection.getRangeAt(i).cloneContents());
+    }
+    const rewritten = rewriteCopiedHtml(container.innerHTML);
+    if (rewritten === container.innerHTML) return; // no asset images — default copy
+
+    e.preventDefault();
+    e.clipboardData.setData("text/html", rewritten);
+    e.clipboardData.setData("text/plain", selection.toString());
+  }
+
   // Right-click on the rendered article opens the AI Lookup native context
   // menu. We suppress the default webview menu (Cut/Copy/Paste — they're
   // rebuilt as the first items of our menu) and pass a slim provider payload
   // to Rust (no urlTemplate, no prompt template body — those stay
   // frontend-side; Rust only needs id/name to build the menu).
-  function handleContextMenu(e: MouseEvent) {
-    e.preventDefault();
+  function handleContextMenu(e: MouseEvent) {    e.preventDefault();
     const selection = window.getSelection()?.toString() ?? "";
     setPendingSelection(selection);
 
@@ -173,8 +200,10 @@
 
   onMount(() => {
     articleEl?.addEventListener("contextmenu", handleContextMenu);
+    articleEl?.addEventListener("copy", handleCopy);
     return () => {
       articleEl?.removeEventListener("contextmenu", handleContextMenu);
+      articleEl?.removeEventListener("copy", handleCopy);
       observer?.disconnect();
       // Remove the body-level tooltip so it can't outlive the component.
       tooltipEl?.remove();

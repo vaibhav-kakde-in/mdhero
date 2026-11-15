@@ -6,6 +6,7 @@ import texmath from "markdown-it-texmath";
 import katex from "katex";
 import hljs from "highlight.js/lib/core";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { addHtmlExtPlugin } from "./html-ext";
 
 // Register common languages
 import javascript from "highlight.js/lib/languages/javascript";
@@ -273,6 +274,7 @@ export async function initRenderer(): Promise<void> {
   });
   addSourceLinePlugin(md);
   addDirPlugin(md);
+  addHtmlExtPlugin(md);
 
   initialized = true;
 }
@@ -308,6 +310,7 @@ export function renderFull(markdown: string, baseDir?: string): RenderResult {
     });
     addSourceLinePlugin(md);
     addDirPlugin(md);
+    addHtmlExtPlugin(md);
     initialized = true;
   }
 
@@ -373,15 +376,42 @@ export function renderFull(markdown: string, baseDir?: string): RenderResult {
   return { html, frontmatter, wordCount, assetPaths, isMarp: isMarpDoc(frontmatter) };
 }
 
+/**
+ * Turn an absolute on-disk path into a file:/// URL (RFC 8089). Used for
+ * clipboard output when `absoluteImagePaths` is on: the asset protocol works
+ * only inside MDHero, while a file:/// URL keeps the image loadable when the
+ * copied document is pasted into other apps on this machine.
+ */
+export function toFileUrl(path: string): string {
+  // UNC \\server\share\file → file://server/share/file (the leading \\ is the
+  // authority marker; it becomes the // after file:, not part of the path).
+  if (path.startsWith("\\\\")) {
+    return "file://" + path.slice(2).replace(/\\/g, "/");
+  }
+  // /home/u/f.jpg is already absolute — only the authority slashes are added.
+  if (path.startsWith("/")) {
+    return "file://" + path;
+  }
+  // D:\a\b.jpg → file:///D:/a/b.jpg
+  return "file:///" + path.replace(/\\/g, "/");
+}
+
 function resolveRelativeImages(html: string, baseDir: string, collected: string[]): string {
+  // In-app display always goes through the asset protocol: a WebView cannot
+  // load file:// subresources from the app's own origin (Chromium hard-blocks
+  // local resources on non-file pages), whatever the CSP says. The
+  // `absoluteImagePaths` setting therefore does NOT change what the document
+  // looks like inside MDHero — it governs what lands on the clipboard when the
+  // rendered content is copied (see rewriteCopiedHtml and the copy handler in
+  // MarkdownRenderer.svelte).
   return html.replace(
     /(<img\s[^>]*?\bsrc=")(?!https?:\/\/|data:|blob:|asset:|file:)([^"]+)(")/gi,
     (_match, before, src, after) => {
       const imagePath = resolveLocalPath(src, baseDir);
       try {
-        const url = `${before}${convertFileSrc(imagePath)}${after}`;
+        const url = convertFileSrc(imagePath);
         collected.push(imagePath);
-        return url;
+        return `${before}${url}${after}`;
       } catch {
         return `${before}${src}${after}`;
       }
@@ -412,6 +442,52 @@ function resolveSrcset(srcset: string, baseDir: string, collected: string[]): st
       }
     })
     .join(", ");
+}
+
+/**
+ * Reverse of `convertFileSrc` for clipboard output: recover the on-disk path
+ * from an asset-protocol URL and re-encode it as an RFC 8089 file:/// URL.
+ *
+ * On Windows `convertFileSrc` yields `http://asset.localhost/<encoded>` (or
+ * `https://` when useHttpsScheme is on); elsewhere `asset://localhost/<encoded>`.
+ * Returns null for URLs that did not come from the asset protocol — callers
+ * leave those untouched.
+ */
+export function assetUrlToFileUrl(url: string): string | null {
+  const m = url.match(/^(?:https?:\/\/asset\.localhost\/|asset:\/\/localhost\/)(.+)$/i);
+  if (!m) return null;
+  try {
+    return toFileUrl(decodeURIComponent(m[1]));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Rewrite image addresses in copied HTML from the app-internal asset protocol
+ * to file:/// absolute URLs. Used only when `absoluteImagePaths` is on and the
+ * user copies rendered content — the in-app DOM keeps its asset URLs. External
+ * http(s)/data: images pass through unchanged.
+ */
+export function rewriteCopiedHtml(html: string): string {
+  return html
+    .replace(/(<img\s[^>]*?\bsrc=")([^"]+)(")/gi, (match, before, src, after) => {
+      const fileUrl = assetUrlToFileUrl(src);
+      return fileUrl ? `${before}${fileUrl}${after}` : match;
+    })
+    .replace(/(<(?:img|source)\s[^>]*?\bsrcset=")([^"]+)(")/gi, (match: string, before: string, srcset: string, after: string) => {
+      const rewritten = srcset
+        .split(",")
+        .map((candidate) => {
+          const trimmed = candidate.trim();
+          if (!trimmed) return trimmed;
+          const [src, ...descriptor] = trimmed.split(/\s+/);
+          const fileUrl = assetUrlToFileUrl(src);
+          return fileUrl ? [fileUrl, ...descriptor].join(" ") : trimmed;
+        })
+        .join(", ");
+      return `${before}${rewritten}${after}`;
+    });
 }
 
 function isExternalSrc(src: string): boolean {
