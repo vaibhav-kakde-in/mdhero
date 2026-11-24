@@ -33,6 +33,20 @@ import ruby from "highlight.js/lib/languages/ruby";
 import php from "highlight.js/lib/languages/php";
 import plaintext from "highlight.js/lib/languages/plaintext";
 
+/**
+ * Heading id, the way GitHub and VS Code build it, so a `[text](#id)` table of
+ * contents written for either one resolves here too. Unicode letters and digits
+ * are kept: an ASCII-only `\w` stripped every accent, so `## Suites prévues`
+ * became `suites-prvues` and its `#suites-prévues` link went nowhere.
+ */
+export function slugifyHeading(s: string): string {
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/[^\p{L}\p{M}\p{N}_\s-]/gu, "")
+    .replace(/\s/g, "-");
+}
+
 hljs.registerLanguage("javascript", javascript);
 hljs.registerLanguage("typescript", typescript);
 hljs.registerLanguage("python", python);
@@ -262,15 +276,7 @@ export async function initRenderer(): Promise<void> {
   });
 
   md.use(taskLists, { enabled: false, label: true });
-  md.use(anchor, {
-    permalink: false,
-    slugify: (s: string) =>
-      s
-        .toLowerCase()
-        .trim()
-        .replace(/[^\w\s-]/g, "")
-        .replace(/\s+/g, "-"),
-  });
+  md.use(anchor, { permalink: false, slugify: slugifyHeading });
   addSourceLinePlugin(md);
   addDirPlugin(md);
 
@@ -302,10 +308,7 @@ export function renderFull(markdown: string, baseDir?: string): RenderResult {
   });
     md.use(texmath, { engine: katex, delimiters: "dollars" });
     md.use(taskLists, { enabled: false, label: true });
-    md.use(anchor, {
-      permalink: false,
-      slugify: (s: string) => s.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-"),
-    });
+    md.use(anchor, { permalink: false, slugify: slugifyHeading });
     addSourceLinePlugin(md);
     addDirPlugin(md);
     initialized = true;
