@@ -22,6 +22,7 @@ const BOOLEANS = [
   ["syntaxHighlighting", true],
   ["autoPresentMarp", true],
   ["restoreTabsOnLaunch", true],
+  ["tocOpen", false],
   ["wrapCodeBlocks", false],
   ["autoCheckUpdates", true],
 ] as const;

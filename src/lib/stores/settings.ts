@@ -16,6 +16,9 @@ export interface ReaderSettings {
   restoreTabsOnLaunch: boolean;
   /** Width of the table-of-contents sidebar in px (#108). */
   tocWidth: number;
+  /** Whether the table-of-contents sidebar was left open, so the toolbar button
+   *  keeps its state across launches (#178). */
+  tocOpen: boolean;
   /** Wrap long lines in rendered code blocks instead of scrolling them. */
   wrapCodeBlocks: boolean;
   /** Ask GitHub once a day whether there is a newer release (#180). The
@@ -92,6 +95,7 @@ function loadSettings(): ReaderSettings {
     autoPresentMarp: true,
     restoreTabsOnLaunch: true,
     tocWidth: DEFAULT_TOC_WIDTH,
+    tocOpen: false,
     wrapCodeBlocks: false,
     autoCheckUpdates: true,
     tabsPosition: "top",
@@ -110,6 +114,7 @@ function loadSettings(): ReaderSettings {
         maxWidth: clamp(storedMaxWidth, MIN_MAX_WIDTH, MAX_MAX_WIDTH),
         widthMode: parsed.widthMode === "wide" ? "wide" : "comfortable",
         tocWidth: clampTocWidth(parsed.tocWidth),
+        tocOpen: storedBoolean(parsed.tocOpen, defaults.tocOpen),
         closeOnEscape: storedBoolean(parsed.closeOnEscape, defaults.closeOnEscape),
         showLineNumbers: storedBoolean(parsed.showLineNumbers, defaults.showLineNumbers),
         syntaxHighlighting: storedBoolean(parsed.syntaxHighlighting, defaults.syntaxHighlighting),
