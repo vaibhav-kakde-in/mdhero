@@ -1,4 +1,5 @@
-import { writable } from "svelte/store";
+import { get, writable } from "svelte/store";
+import { settings } from "./settings";
 
 export interface TocEntry {
   id: string;
@@ -8,7 +9,10 @@ export interface TocEntry {
 
 export const tocEntries = writable<TocEntry[]>([]);
 export const activeHeadingId = writable<string | null>(null);
-export const tocVisible = writable(false);
+/** Whether the sidebar is wanted. It starts from the saved choice and only
+ *  `toggleToc` changes it: a document with no headings, the home tab or edit
+ *  mode hide the sidebar without clearing the choice (#178). */
+export const tocVisible = writable(get(settings).tocOpen);
 
 // When true, the IntersectionObserver won't update activeHeadingId
 let observerPaused = false;
@@ -42,5 +46,7 @@ export function extractToc(container: HTMLElement): TocEntry[] {
 }
 
 export function toggleToc(): void {
-  tocVisible.update((v) => !v);
+  const open = !get(tocVisible);
+  tocVisible.set(open);
+  settings.update((s) => ({ ...s, tocOpen: open }));
 }
